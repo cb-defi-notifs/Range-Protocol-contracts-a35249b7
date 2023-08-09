@@ -3,7 +3,7 @@ import { LedgerSigner } from "@anders-t/ethers-ledger";
 async function main() {
   const provider = ethers.getDefaultProvider("");
   const ledger = await new LedgerSigner(provider, "");
-  const UNI_V3_FACTORY = "0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035";
+  const UNI_V3_FACTORY = "0x33128a8fC17869897dcE68Ed026d694621f6FDfD";
   let RangeProtocolFactory = await ethers.getContractFactory(
     "RangeProtocolFactory"
   );

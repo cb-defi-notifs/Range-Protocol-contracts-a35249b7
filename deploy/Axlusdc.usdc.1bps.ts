@@ -1,6 +1,6 @@
-import {ethers} from "hardhat";
-import {LedgerSigner} from "@anders-t/ethers-ledger";
-import {getInitializeData} from "../test/common";
+import { ethers } from "hardhat";
+import { LedgerSigner } from "@anders-t/ethers-ledger";
+import { getInitializeData } from "../test/common";
 
 async function main() {
     const provider = ethers.getDefaultProvider(""); // To be updated.
@@ -8,11 +8,11 @@ async function main() {
     const managerAddress = "0x84b43ce5fB1FAF013181FEA96ffA4af6179e396a"; // To be updated.
     const rangeProtocolFactoryAddress = ""; // To be updated.
     const vaultImplAddress = ""; // to be updated.
-    const token0 = "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9";
-    const token1 = "0x201eba5cc46d216ce6dc03f6a759e8e766e956ae";
+    const token0 = "0xeb466342c4d449bc9f53a865d5cb90586f405215";
+    const token1 = "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca";
     const fee = 100;
-    const name = ""; // To be updated.
-    const symbol = ""; // To be updated.
+    const name = "Range Uniswap axlUSDC/USDbC 0.01% Pegged LP"; // To be updated.
+    const symbol = "R-UNI"; // To be updated.
 
     let factory = await ethers.getContractAt(
         "RangeProtocolFactory",
@@ -29,7 +29,7 @@ async function main() {
     const txReceipt = await tx.wait();
     const [
         {
-            args: {vault},
+            args: { vault },
         },
     ] = txReceipt.events.filter(
         (event: { event: any }) => event.event === "VaultCreated"

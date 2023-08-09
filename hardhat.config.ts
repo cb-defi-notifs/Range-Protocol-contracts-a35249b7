@@ -5,7 +5,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
-import "hardhat-deploy";
+// import "hardhat-deploy";
 import "solidity-coverage";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "hardhat-gas-reporter"

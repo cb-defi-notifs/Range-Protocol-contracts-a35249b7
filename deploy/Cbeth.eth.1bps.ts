@@ -8,11 +8,11 @@ async function main() {
     const managerAddress = "0x84b43ce5fB1FAF013181FEA96ffA4af6179e396a"; // To be updated.
     const rangeProtocolFactoryAddress = ""; // To be updated.
     const vaultImplAddress = ""; // to be updated.
-    const token0 = "0x201eba5cc46d216ce6dc03f6a759e8e766e956ae";
-    const token1 = "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111";
-    const fee = 500;
-    const name = ""; // To be updated.
-    const symbol = ""; // To be updated.
+    const token0 = "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22";
+    const token1 = "0x4200000000000000000000000000000000000006";
+    const fee = 100;
+    const name = "Range Uniswap cbETH/WETH 0.01% Pegged LP"; // To be updated.
+    const symbol = "R-UNI"; // To be updated.
 
     let factory = await ethers.getContractAt(
         "RangeProtocolFactory",
