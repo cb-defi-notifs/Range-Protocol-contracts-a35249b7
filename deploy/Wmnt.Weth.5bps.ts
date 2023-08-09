@@ -11,8 +11,8 @@ async function main() {
   const token0 = "0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8";
   const token1 = "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111";
   const fee = 500;
-  const name = ""; // To be updated.
-  const symbol = ""; // To be updated.
+  const name = "Range Agni WMNT/WETH 0.05% Passive LP"; // To be updated.
+  const symbol = "R-UNI"; // To be updated.
 
   let factory = await ethers.getContractAt(
     "RangeProtocolFactory",
