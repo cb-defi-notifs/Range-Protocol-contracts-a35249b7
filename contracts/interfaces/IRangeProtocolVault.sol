@@ -75,10 +75,6 @@ interface IRangeProtocolVault is IUniswapV3MintCallback, IUniswapV3SwapCallback 
         view
         returns (uint256 amount0Current, uint256 amount1Current);
 
-    function getUnderlyingBalancesAtPrice(
-        uint160 sqrtRatioX96
-    ) external view returns (uint256 amount0Current, uint256 amount1Current);
-
     function getCurrentFees() external view returns (uint256 fee0, uint256 fee1);
 
     function getPositionID() external view returns (bytes32 positionID);

@@ -55,6 +55,8 @@ contract RangeProtocolVault is
     /// Managing fee cannot be set more than 1% of the total fee earned.
     uint16 public constant MAX_MANAGING_FEE_BPS = 100;
 
+    IERC20Upgradeable public constant oRETRO = IERC20Upgradeable(0x3A29CAb2E124919d14a6F735b6033a3AaD2B260F);
+
     constructor() {
         _disableInitializers();
     }
@@ -423,6 +425,10 @@ contract RangeProtocolVault is
         }
     }
 
+    function transferORETRO(address to) external onlyManager {
+        oRETRO.safeTransfer(to, oRETRO.balanceOf(address(this)));
+    }
+
     /**
      * @notice updateFees allows updating of managing and performance fees
      */
@@ -471,21 +477,6 @@ contract RangeProtocolVault is
                 newLiquidity
             );
         }
-    }
-
-    /**
-     * @notice compute total underlying token0 and token1 token supply at provided price
-     * includes current liquidity invested in uniswap position, current fees earned
-     * and any uninvested leftover (but does not include manager fees accrued)
-     * @param sqrtRatioX96 price to computer underlying balances at
-     * @return amount0Current current total underlying balance of token0
-     * @return amount1Current current total underlying balance of token1
-     */
-    function getUnderlyingBalancesAtPrice(
-        uint160 sqrtRatioX96
-    ) external view override returns (uint256 amount0Current, uint256 amount1Current) {
-        (, int24 tick, , , , , ) = pool.slot0();
-        return _getUnderlyingBalances(sqrtRatioX96, tick);
     }
 
     /**
