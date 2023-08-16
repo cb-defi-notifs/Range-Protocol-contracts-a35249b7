@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.4;
 
-/// @title The interface for a PancakeSwap V3 Pool
-/// @notice A PancakeSwap pool facilitates swapping and automated market making between any two assets that strictly conform
-/// to the ERC20 specification
-/// @dev The pool interface is broken up into many smaller pieces
-interface IPancakeV3Pool {
+interface IFusionXV3Pool {
     /// @notice The 0th storage slot in the pool stores many values, and is exposed as a single method to save gas
     /// when accessed externally.
     /// @return sqrtPriceX96 The current price of the pool as a sqrt(token1/token0) Q64.96 value
@@ -117,7 +113,7 @@ interface IPancakeV3Pool {
             bool initialized
         );
 
-    /// @notice The contract that deployed the pool, which must adhere to the IPancakeV3Factory interface
+    /// @notice The contract that deployed the pool, which must adhere to the IFusionXV3Factory interface
     /// @return The contract address
     function factory() external view returns (address);
 
@@ -152,7 +148,7 @@ interface IPancakeV3Pool {
     function initialize(uint160 sqrtPriceX96) external;
 
     /// @notice Adds liquidity for the given recipient/tickLower/tickUpper position
-    /// @dev The caller of this method receives a callback in the form of IPancakeV3MintCallback#pancakeV3MintCallback
+    /// @dev The caller of this method receives a callback in the form of IFusionXV3MintCallback#fusionXV3MintCallback
     /// in which they must pay any token0 or token1 owed for the liquidity. The amount of token0/token1 due depends
     /// on tickLower, tickUpper, the amount of liquidity, and the current price.
     /// @param recipient The address for which the liquidity will be created
@@ -205,7 +201,7 @@ interface IPancakeV3Pool {
     ) external returns (uint256 amount0, uint256 amount1);
 
     /// @notice Swap token0 for token1, or token1 for token0
-    /// @dev The caller of this method receives a callback in the form of IPancakeV3SwapCallback#pancakeV3SwapCallback
+    /// @dev The caller of this method receives a callback in the form of IFusionXV3SwapCallback#fusionXV3SwapCallback
     /// @param recipient The address to receive the output of the swap
     /// @param zeroForOne The direction of the swap, true for token0 to token1, false for token1 to token0
     /// @param amountSpecified The amount of the swap, which implicitly configures the swap as exact input (positive), or exact output (negative)
@@ -223,7 +219,7 @@ interface IPancakeV3Pool {
     ) external returns (int256 amount0, int256 amount1);
 
     /// @notice Receive token0 and/or token1 and pay it back, plus a fee, in the callback
-    /// @dev The caller of this method receives a callback in the form of IPancakeV3FlashCallback#pancakeV3FlashCallback
+    /// @dev The caller of this method receives a callback in the form of IFusionXV3FlashCallback#fusionXV3FlashCallback
     /// @dev Can be used to donate underlying tokens pro-rata to currently in-range liquidity providers by calling
     /// with 0 amount{0,1} and sending the donation amount(s) from the callback
     /// @param recipient The address which will receive the token0 and token1 amounts

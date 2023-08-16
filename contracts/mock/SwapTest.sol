@@ -2,16 +2,16 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../pancake/interfaces/IPancakeV3Pool.sol";
-import "../pancake/interfaces/callback/IPancakeV3SwapCallback.sol";
+import "../fusionX/interfaces/IFusionXV3Pool.sol";
+import "../fusionX/interfaces/callback/IFusionXV3SwapCallback.sol";
 
-contract SwapTest is IPancakeV3SwapCallback {
+contract SwapTest is IFusionXV3SwapCallback {
     function swapZeroForOne(address pool, int256 amountSpecified) external {
-        (uint160 sqrtRatio, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        (uint160 sqrtRatio, , , , , , ) = IFusionXV3Pool(pool).slot0();
         uint160 nextSqrtRatio = sqrtRatio +
-            uint160(uint160(uint256(amountSpecified) * 2 ** 96) / IPancakeV3Pool(pool).liquidity());
+            uint160(uint160(uint256(amountSpecified) * 2 ** 96) / IFusionXV3Pool(pool).liquidity());
 
-        IPancakeV3Pool(pool).swap(
+        IFusionXV3Pool(pool).swap(
             address(msg.sender),
             false,
             amountSpecified,
@@ -28,8 +28,8 @@ contract SwapTest is IPancakeV3SwapCallback {
     ) external {
         for (uint256 i = 0; i < numTrades; i++) {
             bool zeroForOne = i % ratio > 0;
-            (uint160 sqrtRatio, , , , , , ) = IPancakeV3Pool(pool).slot0();
-            IPancakeV3Pool(pool).swap(
+            (uint160 sqrtRatio, , , , , , ) = IFusionXV3Pool(pool).slot0();
+            IFusionXV3Pool(pool).swap(
                 address(msg.sender),
                 zeroForOne,
                 amountSpecified,
@@ -45,7 +45,7 @@ contract SwapTest is IPancakeV3SwapCallback {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96
     ) external returns (int256 amount0Delta, int256 amount1Delta, uint160 nextSqrtRatio) {
-        (amount0Delta, amount1Delta) = IPancakeV3Pool(pool).swap(
+        (amount0Delta, amount1Delta) = IFusionXV3Pool(pool).swap(
             address(msg.sender),
             zeroForOne,
             amountSpecified,
@@ -53,10 +53,10 @@ contract SwapTest is IPancakeV3SwapCallback {
             abi.encode(msg.sender)
         );
 
-        (nextSqrtRatio, , , , , , ) = IPancakeV3Pool(pool).slot0();
+        (nextSqrtRatio, , , , , , ) = IFusionXV3Pool(pool).slot0();
     }
 
-    function pancakeV3SwapCallback(
+    function fusionXV3SwapCallback(
         int256 amount0Delta,
         int256 amount1Delta,
         bytes calldata data
@@ -64,13 +64,13 @@ contract SwapTest is IPancakeV3SwapCallback {
         address sender = abi.decode(data, (address));
 
         if (amount0Delta > 0) {
-            IERC20(IPancakeV3Pool(msg.sender).token0()).transferFrom(
+            IERC20(IFusionXV3Pool(msg.sender).token0()).transferFrom(
                 sender,
                 msg.sender,
                 uint256(amount0Delta)
             );
         } else if (amount1Delta > 0) {
-            IERC20(IPancakeV3Pool(msg.sender).token1()).transferFrom(
+            IERC20(IFusionXV3Pool(msg.sender).token1()).transferFrom(
                 sender,
                 msg.sender,
                 uint256(amount1Delta)

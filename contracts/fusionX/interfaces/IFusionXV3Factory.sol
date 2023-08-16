@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.4;
 
-/// @title The interface for the PancakeSwap V3 Factory
-/// @notice The PancakeSwap V3 Factory facilitates creation of PancakeSwap V3 pools and control over the protocol fees
-interface IPancakeV3Factory {
+/// @title The interface for the FusionX V3 Factory
+/// @notice The FusionX V3 Factory facilitates creation of FusionX V3 pools and control over the protocol fees
+interface IFusionXV3Factory {
     struct TickSpacingExtraInfo {
         bool whitelistRequested;
         bool enabled;

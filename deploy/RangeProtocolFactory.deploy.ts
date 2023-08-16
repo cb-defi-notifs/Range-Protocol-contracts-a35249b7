@@ -3,12 +3,12 @@ import { LedgerSigner } from "@anders-t/ethers-ledger";
 async function main() {
   const provider = ethers.getDefaultProvider("");
   const ledger = await new LedgerSigner(provider, "");
-  const UNI_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984";
+  const FUSIONX_V3_FACTORY = "0x530d2766D1988CC1c000C8b7d00334c14B69AD71";
   let RangeProtocolFactory = await ethers.getContractFactory(
     "RangeProtocolFactory"
   );
   RangeProtocolFactory = await RangeProtocolFactory.connect(ledger);
-  const factory = await RangeProtocolFactory.deploy(UNI_V3_FACTORY);
+  const factory = await RangeProtocolFactory.deploy(FUSIONX_V3_FACTORY);
   console.log("Factory: ", factory.address);
 }
 // We recommend this pattern to be able to use async/await everywhere
