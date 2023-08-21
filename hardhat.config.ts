@@ -1,14 +1,15 @@
 import { HardhatUserConfig } from "hardhat/config";
+require("hardhat-contract-sizer");
 
 // PLUGINS
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
-import "hardhat-deploy";
+// import "hardhat-deploy";
 import "solidity-coverage";
 import "@nomicfoundation/hardhat-chai-matchers";
-import "hardhat-gas-reporter"
+import "hardhat-gas-reporter";
 
 // Process Env Variables
 import * as dotenv from "dotenv";
@@ -23,6 +24,12 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   networks: {
+    hardhat: {
+      forking: {
+        url: "https://bsc.rpc.blxrbdn.com",
+      },
+      allowUnlimitedContractSize: true,
+    },
     mainnet: {
       accounts: PK ? [PK] : [],
       chainId: 1,
@@ -69,16 +76,6 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: { enabled: true, runs: 100 },
         },
-      },
-    ],
-  },
-  external: {
-    contracts: [
-      {
-        artifacts: "node_modules/@uniswap/v3-core/artifacts",
-      },
-      {
-        artifacts: "node_modules/@uniswap/v3-periphery/artifacts",
       },
     ],
   },

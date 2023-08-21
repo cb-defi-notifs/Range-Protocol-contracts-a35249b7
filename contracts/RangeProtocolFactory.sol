@@ -4,13 +4,12 @@ pragma solidity 0.8.4;
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IUniswapV3Factory} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3PoolImmutables} from "@uniswap/v3-core/contracts/interfaces/pool/IUniswapV3PoolImmutables.sol";
+import {IiZiSwapFactory} from "./iZiSwap/interfaces/IiZiSwapFactory.sol";
+import {IiZiSwapPool} from "./iZiSwap/interfaces/IiZiSwapPool.sol";
 import {IRangeProtocolFactory} from "./interfaces/IRangeProtocolFactory.sol";
 import {FactoryErrors} from "./errors/FactoryErrors.sol";
 
 /**
- * @dev Mars@RangeProtocol
  * @notice RangeProtocolFactory deploys and upgrades proxies for Range Protocol vault contracts.
  * Owner can deploy and upgrade vault contracts.
  */
@@ -26,8 +25,8 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
     /// @notice all deployed vault instances
     address[] private _vaultsList;
 
-    constructor(address _uniswapV3Factory) Ownable() {
-        factory = _uniswapV3Factory;
+    constructor(address _iZiSwapFactory) Ownable() {
+        factory = _iZiSwapFactory;
     }
 
     // @notice createVault creates a ERC1967 proxy instance for the given implementation of vault contract
@@ -43,7 +42,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
         address implementation,
         bytes memory data
     ) external override onlyOwner {
-        address pool = IUniswapV3Factory(factory).getPool(tokenA, tokenB, fee);
+        address pool = IiZiSwapFactory(factory).pool(tokenA, tokenB, fee);
         if (pool == address(0x0)) revert FactoryErrors.ZeroPoolAddress();
         address vault = _createVault(tokenA, tokenB, fee, pool, implementation, data);
 
@@ -115,11 +114,11 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
         address token0 = tokenA < tokenB ? tokenA : tokenB;
         if (token0 == address(0x0)) revert("token cannot be a zero address");
 
-        int24 tickSpacing = IUniswapV3Factory(factory).feeAmountTickSpacing(fee);
+        int24 pointDelta = IiZiSwapFactory(factory).fee2pointDelta(fee);
         vault = address(
             new ERC1967Proxy(
                 implementation,
-                abi.encodeWithSelector(INIT_SELECTOR, pool, tickSpacing, data)
+                abi.encodeWithSelector(INIT_SELECTOR, pool, pointDelta, data)
             )
         );
         _vaultsList.push(vault);

@@ -1,10 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-import {IUniswapV3MintCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
-import {IUniswapV3SwapCallback} from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
+import {IiZiSwapCallback, IiZiSwapMintCallback} from "../iZiSwap/interfaces/IiZiSwapCallback.sol";
 
-interface IRangeProtocolVault is IUniswapV3MintCallback, IUniswapV3SwapCallback {
+interface IRangeProtocolVault is IiZiSwapCallback, IiZiSwapMintCallback {
     event Minted(
         address indexed receiver,
         uint256 mintAmount,
@@ -34,13 +33,13 @@ interface IRangeProtocolVault is IUniswapV3MintCallback, IUniswapV3SwapCallback 
     event FeesEarned(uint256 feesEarned0, uint256 feesEarned1);
     event FeesUpdated(uint16 managingFee, uint16 performanceFee);
     event InThePositionStatusSet(bool inThePosition);
-    event Swapped(bool zeroForOne, int256 amount0, int256 amount1);
+    event Swapped(bool zeroForOne, uint256 amount0, uint256 amount1);
     event TicksSet(int24 lowerTick, int24 upperTick);
     event MintStarted();
 
     function initialize(address _pool, int24 _tickSpacing, bytes memory data) external;
 
-    function updateTicks(int24 _lowerTick, int24 _upperTick) external;
+    function updatePoints(int24 _leftPoint, int24 _rightPoint) external;
 
     function mint(uint256 mintAmount) external returns (uint256 amount0, uint256 amount1);
 
@@ -50,15 +49,15 @@ interface IRangeProtocolVault is IUniswapV3MintCallback, IUniswapV3SwapCallback 
 
     function swap(
         bool zeroForOne,
-        int256 swapAmount,
-        uint160 sqrtPriceLimitX96
-    ) external returns (int256 amount0, int256 amount1);
+        uint128 swapAmount,
+        int24 pointLimit
+    ) external returns (uint256 amount0, uint256 amount1);
 
     function addLiquidity(
         int24 newLowerTick,
         int24 newUpperTick,
-        uint256 amount0,
-        uint256 amount1
+        uint128 amount0,
+        uint128 amount1
     ) external returns (uint256 remainingAmount0, uint256 remainingAmount1);
 
     function collectManager() external;
@@ -66,8 +65,8 @@ interface IRangeProtocolVault is IUniswapV3MintCallback, IUniswapV3SwapCallback 
     function updateFees(uint16 newManagingFee, uint16 newPerformanceFee) external;
 
     function getMintAmounts(
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     ) external view returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 
     function getUnderlyingBalances()
