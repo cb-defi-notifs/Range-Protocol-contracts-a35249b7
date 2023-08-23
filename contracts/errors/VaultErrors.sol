@@ -17,4 +17,5 @@ library VaultErrors {
     error InvalidTicksSpacing();
     error OnlyFactoryAllowed();
     error LiquidityAlreadyAdded();
+    error OnlySelfCallAllowed();
 }

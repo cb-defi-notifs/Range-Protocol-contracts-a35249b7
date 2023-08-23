@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.5.0;
 
-import "../iZiSwap/MintMath.sol";
+import "../iZiSwap/libraries/MintMath.sol";
 
 contract MockMintMath {
     function getLiquidityForAmounts(
@@ -13,15 +13,8 @@ contract MockMintMath {
         uint160 sqrtPrice_96,
         uint160 sqrtRate_96
     ) public pure returns (uint128 liquidity) {
-        return MintMath.getLiquidityForAmounts(
-            pl,
-            pr,
-            xLim,
-            yLim,
-            currPt,
-            sqrtPrice_96,
-            sqrtRate_96
-        );
+        return
+            MintMath.getLiquidityForAmounts(pl, pr, xLim, yLim, currPt, sqrtPrice_96, sqrtRate_96);
     }
 
     /// @dev [leftPoint, rightPoint)
@@ -32,15 +25,16 @@ contract MockMintMath {
         uint128 liquidDelta,
         int24 leftPoint,
         int24 rightPoint
-    ) public view returns (uint128 x, uint128 y) {
-        return MintMath.getAmountsForLiquidity(
-            sqrtPrice_96,
-            sqrtRate_96,
-            currentPoint,
-            liquidDelta,
-            leftPoint,
-            rightPoint
-        );
+    ) public pure returns (uint128 x, uint128 y) {
+        return
+            MintMath.getAmountsForLiquidity(
+                sqrtPrice_96,
+                sqrtRate_96,
+                currentPoint,
+                liquidDelta,
+                leftPoint,
+                rightPoint
+            );
     }
 
     function getAmountY(
@@ -50,13 +44,7 @@ contract MockMintMath {
         uint160 sqrtRate_96,
         bool upper
     ) public pure returns (uint256 amount) {
-        return MintMath.getAmountY(
-            liquidity,
-            sqrtPriceL_96,
-            sqrtPriceR_96,
-            sqrtRate_96,
-            upper
-        );
+        return MintMath.getAmountY(liquidity, sqrtPriceL_96, sqrtPriceR_96, sqrtRate_96, upper);
     }
 
     function getAmountX(
@@ -67,14 +55,7 @@ contract MockMintMath {
         uint160 sqrtRate_96,
         bool upper
     ) public pure returns (uint256 amount) {
-        return MintMath.getAmountX(
-            liquidity,
-            leftPt,
-            rightPt,
-            sqrtPriceR_96,
-            sqrtRate_96,
-            upper
-        );
+        return MintMath.getAmountX(liquidity, leftPt, rightPt, sqrtPriceR_96, sqrtRate_96, upper);
     }
 
     function getAmountYUnitLiquidity_96(
@@ -82,11 +63,7 @@ contract MockMintMath {
         uint160 sqrtPriceR_96,
         uint160 sqrtRate_96
     ) public pure returns (uint256 amount_96) {
-        return MintMath.getAmountYUnitLiquidity_96(
-            sqrtPriceL_96,
-            sqrtPriceR_96,
-            sqrtRate_96
-        );
+        return MintMath.getAmountYUnitLiquidity_96(sqrtPriceL_96, sqrtPriceR_96, sqrtRate_96);
     }
 
     function getAmountXUnitLiquidity_96(
@@ -95,11 +72,6 @@ contract MockMintMath {
         uint160 sqrtPriceR_96,
         uint160 sqrtRate_96
     ) public pure returns (uint256 amount_96) {
-        return MintMath.getAmountXUnitLiquidity_96(
-            leftPt,
-            rightPt,
-            sqrtPriceR_96,
-            sqrtRate_96
-        );
+        return MintMath.getAmountXUnitLiquidity_96(leftPt, rightPt, sqrtPriceR_96, sqrtRate_96);
     }
 }

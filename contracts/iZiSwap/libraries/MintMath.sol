@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "./TwoPower.sol";
 import "./LogPowMath.sol";
 import "./MulDivMath.sol";
-import {IiZiSwapPool} from "./interfaces/IiZiSwapPool.sol";
+import {IiZiSwapPool} from "../interfaces/IiZiSwapPool.sol";
 
 library MintMath {
     /// @dev [pl, pr)
@@ -78,9 +78,8 @@ library MintMath {
         uint128 liquidDelta,
         int24 leftPoint,
         int24 rightPoint
-    ) internal view returns (uint128 x, uint128 y) {
+    ) internal pure returns (uint128 x, uint128 y) {
         uint256 amountY;
-        int24 currentPoint = currentPoint;
         uint160 sqrtPriceR_96 = LogPowMath.getSqrtPrice(rightPoint);
         if (leftPoint < currentPoint) {
             uint160 sqrtPriceL_96 = LogPowMath.getSqrtPrice(leftPoint);
@@ -107,10 +106,7 @@ library MintMath {
         }
         if (leftPoint <= currentPoint && rightPoint > currentPoint) {
             // we need compute yc at point of current price
-            amountY += _computeDepositYc(
-                liquidDelta,
-                sqrtPrice_96
-            );
+            amountY += _computeDepositYc(liquidDelta, sqrtPrice_96);
         }
         y = uint128(amountY);
         require(y == amountY, "YOFL");
@@ -186,12 +182,8 @@ library MintMath {
     ) private pure returns (uint128 y) {
         // to simplify computation,
         // minter is required to deposit only token y in point of current price
-        uint256 amount = MulDivMath.mulDivCeil(
-            liquidDelta,
-            sqrtPrice_96,
-            TwoPower.Pow96
-        );
+        uint256 amount = MulDivMath.mulDivCeil(liquidDelta, sqrtPrice_96, TwoPower.Pow96);
         y = uint128(amount);
-        require (y == amount, "YC OFL");
+        require(y == amount, "YC OFL");
     }
 }

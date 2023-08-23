@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 interface IiZiSwapFactory {
-
     /// @notice emit when successfuly create a new pool (calling iZiSwapFactory#newPool)
     /// @param tokenX address of erc-20 tokenX
     /// @param tokenY address of erc-20 tokenY
@@ -62,18 +61,14 @@ interface IiZiSwapFactory {
 
     /// @notice Charge receiver of all pools.
     /// @return address of charge receiver
-    function chargeReceiver() external view returns(address);
+    function chargeReceiver() external view returns (address);
 
     /// @notice Get pool of (tokenX, tokenY, fee), address(0) for not exists.
     /// @param tokenX address of tokenX
     /// @param tokenY address of tokenY
     /// @param fee fee amount
     /// @return address of pool
-    function pool(
-        address tokenX,
-        address tokenY,
-        uint24 fee
-    ) external view returns(address);
+    function pool(address tokenX, address tokenY, uint24 fee) external view returns (address);
 
     /// @notice Get point delta of a given fee amount.
     /// @param fee fee amount
@@ -88,13 +83,15 @@ interface IiZiSwapFactory {
     /// @param _defaultFeeChargePercent new charge percent
     function modifyDefaultFeeChargePercent(uint24 _defaultFeeChargePercent) external;
 
-    function deployPoolParams() external view returns(
-        address tokenX,
-        address tokenY,
-        uint24 fee,
-        int24 currentPoint,
-        int24 pointDelta,
-        uint24 feeChargePercent
-    );
-    
+    function deployPoolParams()
+        external
+        view
+        returns (
+            address tokenX,
+            address tokenY,
+            uint24 fee,
+            int24 currentPoint,
+            int24 pointDelta,
+            uint24 feeChargePercent
+        );
 }

@@ -8,6 +8,7 @@ import {
   IiZiSwapPool,
   RangeProtocolVault,
   RangeProtocolFactory,
+  VaultLib,
 } from "../typechain";
 import { bn, getInitializeData, ZERO_ADDRESS } from "./common";
 
@@ -15,6 +16,7 @@ let factory: RangeProtocolFactory;
 let vaultImpl: RangeProtocolVault;
 let iZiSwapFactory: IiZiSwapFactory;
 let iZiSwapPool: IiZiSwapPool;
+let vaultLib: VaultLib;
 let token0: IERC20;
 let token1: IERC20;
 let owner: SignerWithAddress;
@@ -57,8 +59,15 @@ describe("RangeProtocolFactory", () => {
       await iZiSwapFactory.pool(token0.address, token1.address, poolFee)
     )) as IiZiSwapPool;
 
+    const VaultLib = await ethers.getContractFactory("VaultLib");
+    vaultLib = await VaultLib.deploy();
     const RangeProtocolVault = await ethers.getContractFactory(
-      "RangeProtocolVault"
+      "RangeProtocolVault",
+      {
+        libraries: {
+          VaultLib: vaultLib.address,
+        },
+      }
     );
     vaultImpl = (await RangeProtocolVault.deploy()) as RangeProtocolVault;
 
