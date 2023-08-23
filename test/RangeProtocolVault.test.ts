@@ -40,7 +40,7 @@ let initializeData: any;
 const lowerTick = -10000;
 const upperTick = 20000;
 
-describe.only("RangeProtocolVault", () => {
+describe("RangeProtocolVault", () => {
   before(async () => {
     [manager, nonManager, user2, newManager] = await ethers.getSigners();
     iZiSwapFactory = await ethers.getContractAt(

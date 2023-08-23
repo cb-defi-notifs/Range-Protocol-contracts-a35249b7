@@ -7,36 +7,6 @@ import "./MulDivMath.sol";
 import {IiZiSwapPool} from "../interfaces/IiZiSwapPool.sol";
 
 library MintMath {
-    /// @dev [pl, pr)
-    function _computeDepositXYPerUnit(
-        int24 pl,
-        int24 pr,
-        int24 pc,
-        uint160 sqrtPrice_96,
-        uint160 sqrtRate_96
-    ) private pure returns (uint256 x, uint256 y) {
-        x = 0;
-        y = 0;
-        uint160 sqrtPriceR_96 = LogPowMath.getSqrtPrice(pr);
-        if (pl < pc) {
-            uint160 sqrtPriceL_96 = LogPowMath.getSqrtPrice(pl);
-            if (pr < pc) {
-                y += getAmountYUnitLiquidity_96(sqrtPriceL_96, sqrtPriceR_96, sqrtRate_96);
-            } else {
-                y += getAmountYUnitLiquidity_96(sqrtPriceL_96, sqrtPrice_96, sqrtRate_96);
-            }
-        }
-        if (pr > pc) {
-            // we need compute XR
-            int24 xrLeft = (pl > pc) ? pl : pc + 1;
-            x = getAmountXUnitLiquidity_96(xrLeft, pr, sqrtPriceR_96, sqrtRate_96);
-        }
-        if (pl <= pc && pr > pc) {
-            // we nned compute yc at point of current price
-            y += sqrtPrice_96;
-        }
-    }
-
     function getLiquidityForAmounts(
         int24 pl,
         int24 pr,
@@ -174,6 +144,36 @@ library MintMath {
         uint160 numerator = sqrtPricePrPc_96 - sqrtRate_96;
         uint160 denominator = sqrtPricePrPd_96 - sqrtPriceR_96;
         amount_96 = MulDivMath.mulDivCeil(TwoPower.Pow96, numerator, denominator);
+    }
+
+    /// @dev [pl, pr)
+    function _computeDepositXYPerUnit(
+        int24 pl,
+        int24 pr,
+        int24 pc,
+        uint160 sqrtPrice_96,
+        uint160 sqrtRate_96
+    ) private pure returns (uint256 x, uint256 y) {
+        x = 0;
+        y = 0;
+        uint160 sqrtPriceR_96 = LogPowMath.getSqrtPrice(pr);
+        if (pl < pc) {
+            uint160 sqrtPriceL_96 = LogPowMath.getSqrtPrice(pl);
+            if (pr < pc) {
+                y += getAmountYUnitLiquidity_96(sqrtPriceL_96, sqrtPriceR_96, sqrtRate_96);
+            } else {
+                y += getAmountYUnitLiquidity_96(sqrtPriceL_96, sqrtPrice_96, sqrtRate_96);
+            }
+        }
+        if (pr > pc) {
+            // we need compute XR
+            int24 xrLeft = (pl > pc) ? pl : pc + 1;
+            x = getAmountXUnitLiquidity_96(xrLeft, pr, sqrtPriceR_96, sqrtRate_96);
+        }
+        if (pl <= pc && pr > pc) {
+            // we nned compute yc at point of current price
+            y += sqrtPrice_96;
+        }
     }
 
     function _computeDepositYc(

@@ -487,10 +487,6 @@ library VaultLib {
         return state.users.length;
     }
 
-    function getPositionID(DataTypes.State storage state) public view returns (bytes32 positionID) {
-        return keccak256(abi.encodePacked(address(this), state.leftPoint, state.rightPoint));
-    }
-
     function getUnderlyingBalances(
         DataTypes.State storage state
     ) public view returns (uint256 amountXCurrent, uint256 amountYCurrent) {
@@ -511,6 +507,42 @@ library VaultLib {
             // apply managing fee
             (amountX, amountY) = _netManagingFees(state, amountX, amountY);
         }
+    }
+
+    function _beforeTokenTransfer(
+        DataTypes.State storage state,
+        address from,
+        address to,
+        uint256 amount
+    ) external {
+        // for mint and burn the user vaults adjustment are handled in the respective functions
+        if (from == address(0x0) || to == address(0x0)) return;
+
+        DataTypes.UserVault storage toUserVault = state.userVaults[to];
+        DataTypes.UserVault storage fromUserVault = state.userVaults[from];
+
+        if (!toUserVault.exists) {
+            toUserVault.exists = true;
+            state.users.push(to);
+        }
+        uint256 senderBalance = IRangeProtocolVault(address(this)).balanceOf(from);
+        uint256 tokenXAmount = fromUserVault.tokenX -
+        (fromUserVault.tokenX * (senderBalance - amount)) /
+        senderBalance;
+
+        uint256 tokenYAmount = fromUserVault.tokenY -
+        (fromUserVault.tokenY * (senderBalance - amount)) /
+        senderBalance;
+
+        fromUserVault.tokenX -= tokenXAmount;
+        fromUserVault.tokenY -= tokenYAmount;
+
+        toUserVault.tokenX += tokenXAmount;
+        toUserVault.tokenY += tokenYAmount;
+    }
+
+    function getPositionID(DataTypes.State storage state) public view returns (bytes32 positionID) {
+        return keccak256(abi.encodePacked(address(this), state.leftPoint, state.rightPoint));
     }
 
     function _getUnderlyingBalances(
@@ -562,38 +594,6 @@ library VaultLib {
         amountYCurrent += passiveBalance1 > state.managerBalanceY
             ? passiveBalance1 - state.managerBalanceY
             : passiveBalance1;
-    }
-
-    function _beforeTokenTransfer(
-        DataTypes.State storage state,
-        address from,
-        address to,
-        uint256 amount
-    ) external {
-        // for mint and burn the user vaults adjustment are handled in the respective functions
-        if (from == address(0x0) || to == address(0x0)) return;
-
-        DataTypes.UserVault storage toUserVault = state.userVaults[to];
-        DataTypes.UserVault storage fromUserVault = state.userVaults[from];
-
-        if (!toUserVault.exists) {
-            toUserVault.exists = true;
-            state.users.push(to);
-        }
-        uint256 senderBalance = IRangeProtocolVault(address(this)).balanceOf(from);
-        uint256 tokenXAmount = fromUserVault.tokenX -
-            (fromUserVault.tokenX * (senderBalance - amount)) /
-            senderBalance;
-
-        uint256 tokenYAmount = fromUserVault.tokenY -
-            (fromUserVault.tokenY * (senderBalance - amount)) /
-            senderBalance;
-
-        fromUserVault.tokenX -= tokenXAmount;
-        fromUserVault.tokenY -= tokenYAmount;
-
-        toUserVault.tokenX += tokenXAmount;
-        toUserVault.tokenY += tokenYAmount;
     }
 
     function _withdraw(
