@@ -12,6 +12,8 @@ interface IRangeProtocolFactory {
         address implementation,
         bytes memory configData
     ) external;
+
     function upgradeVaults(address[] calldata _vaults, address[] calldata _impls) external;
+
     function upgradeVault(address _vault, address _impl) external;
 }

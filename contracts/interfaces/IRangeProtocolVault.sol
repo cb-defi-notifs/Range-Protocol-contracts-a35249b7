@@ -41,49 +41,76 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     event MintStarted();
 
     function leftPoint() external view returns (int24);
+
     function rightPoint() external view returns (int24);
+
     function pointDelta() external view returns (int24);
+
     function pool() external view returns (IiZiSwapPool);
+
     function tokenX() external view returns (IERC20Upgradeable);
+
     function tokenY() external view returns (IERC20Upgradeable);
+
     function inThePosition() external view returns (bool);
+
     function mintStarted() external view returns (bool);
+
     function factory() external view returns (address);
+
     function managingFee() external view returns (uint16);
+
     function performanceFee() external view returns (uint16);
+
     function managerBalanceX() external view returns (uint256);
+
     function managerBalanceY() external view returns (uint256);
+
     function userVaults(address user) external view returns (DataTypes.UserVault memory);
+
     function users(uint256 idx) external view returns (address);
 
     function initialize(address _pool, int24 _tickSpacing, bytes memory data) external;
+
     function updatePoints(int24 _leftPoint, int24 _rightPoint) external;
+
     function mintTo(address to, uint256 amount) external;
+
     function mint(uint256 mintAmount) external returns (uint256 amount0, uint256 amount1);
+
     function burn(uint256 burnAmount) external returns (uint256 amount0, uint256 amount1);
+
     function burnFrom(address from, uint256 burnAmount) external;
+
     function removeLiquidity() external;
+
     function swap(
         bool zeroForOne,
         uint128 swapAmount,
         int24 pointLimit
     ) external returns (uint256 amount0, uint256 amount1);
+
     function addLiquidity(
         int24 newLowerTick,
         int24 newUpperTick,
         uint128 amount0,
         uint128 amount1
     ) external returns (uint256 remainingAmount0, uint256 remainingAmount1);
+
     function collectManager() external;
+
     function updateFees(uint16 newManagingFee, uint16 newPerformanceFee) external;
+
     function getMintAmounts(
         uint128 amount0Max,
         uint128 amount1Max
     ) external view returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
+
     function getUnderlyingBalances()
         external
         view
         returns (uint256 amount0Current, uint256 amount1Current);
+
     function getUnderlyingBalancesByShare(
         uint256 shares
     ) external view returns (uint256 amountX, uint256 amountY);
@@ -94,7 +121,9 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     //    ) external view returns (uint256 amount0Current, uint256 amount1Current);
 
     function getCurrentFees() external view returns (uint256 fee0, uint256 fee1);
+
     function getPositionID() external view returns (bytes32 positionID);
+
     function getUserVaults(
         uint256 fromIdx,
         uint256 toIdx

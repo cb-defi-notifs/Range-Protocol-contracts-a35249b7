@@ -527,12 +527,12 @@ library VaultLib {
         }
         uint256 senderBalance = IRangeProtocolVault(address(this)).balanceOf(from);
         uint256 tokenXAmount = fromUserVault.tokenX -
-        (fromUserVault.tokenX * (senderBalance - amount)) /
-        senderBalance;
+            (fromUserVault.tokenX * (senderBalance - amount)) /
+            senderBalance;
 
         uint256 tokenYAmount = fromUserVault.tokenY -
-        (fromUserVault.tokenY * (senderBalance - amount)) /
-        senderBalance;
+            (fromUserVault.tokenY * (senderBalance - amount)) /
+            senderBalance;
 
         fromUserVault.tokenX -= tokenXAmount;
         fromUserVault.tokenY -= tokenYAmount;

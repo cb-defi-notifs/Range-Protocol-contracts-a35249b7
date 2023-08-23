@@ -12,63 +12,63 @@ import {IiZiSwapPool} from "./iZiSwap/interfaces/IiZiSwapPool.sol";
 abstract contract RangeProtocolVaultStorage is IRangeProtocolVault {
     DataTypes.State internal state;
 
-    function leftPoint() external override view returns (int24) {
+    function leftPoint() external view override returns (int24) {
         return state.leftPoint;
     }
 
-    function rightPoint() external override view returns (int24) {
+    function rightPoint() external view override returns (int24) {
         return state.rightPoint;
     }
 
-    function pointDelta() external override view returns (int24) {
+    function pointDelta() external view override returns (int24) {
         return state.pointDelta;
     }
 
-    function pool() external override view returns (IiZiSwapPool) {
+    function pool() external view override returns (IiZiSwapPool) {
         return state.pool;
     }
 
-    function tokenX() external override view returns (IERC20Upgradeable) {
+    function tokenX() external view override returns (IERC20Upgradeable) {
         return state.tokenX;
     }
 
-    function tokenY() external override view returns (IERC20Upgradeable) {
+    function tokenY() external view override returns (IERC20Upgradeable) {
         return state.tokenY;
     }
 
-    function inThePosition() external override view returns (bool) {
+    function inThePosition() external view override returns (bool) {
         return state.inThePosition;
     }
 
-    function mintStarted() external override view returns (bool) {
+    function mintStarted() external view override returns (bool) {
         return state.mintStarted;
     }
 
-    function factory() external override view returns (address) {
+    function factory() external view override returns (address) {
         return state.factory;
     }
 
-    function managingFee() external override view returns (uint16) {
+    function managingFee() external view override returns (uint16) {
         return state.managingFee;
     }
 
-    function performanceFee() external override view returns (uint16) {
+    function performanceFee() external view override returns (uint16) {
         return state.performanceFee;
     }
 
-    function managerBalanceX() external override view returns (uint256) {
+    function managerBalanceX() external view override returns (uint256) {
         return state.managerBalanceX;
     }
 
-    function managerBalanceY() external override view returns (uint256) {
+    function managerBalanceY() external view override returns (uint256) {
         return state.managerBalanceY;
     }
 
-    function userVaults(address user) external override view returns (DataTypes.UserVault memory) {
+    function userVaults(address user) external view override returns (DataTypes.UserVault memory) {
         return state.userVaults[user];
     }
 
-    function users(uint256 idx) external override view returns (address) {
+    function users(uint256 idx) external view override returns (address) {
         return state.users[idx];
     }
 
