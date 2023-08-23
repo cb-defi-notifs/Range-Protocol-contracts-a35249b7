@@ -4,11 +4,11 @@ pragma solidity 0.8.4;
 import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IRangeProtocolVault} from "../interfaces/IRangeProtocolVault.sol";
 import {IiZiSwapPool} from "../iZiSwap/interfaces/IiZiSwapPool.sol";
 import {DataTypes} from "./DataTypes.sol";
 import {MintMath} from "../iZiSwap/libraries/MintMath.sol";
 import {MulDivMath} from "../iZiSwap/libraries/MulDivMath.sol";
-import {IRangeProtocolVault} from "../interfaces/IRangeProtocolVault.sol";
 import {VaultErrors} from "../errors/VaultErrors.sol";
 
 library VaultLib {

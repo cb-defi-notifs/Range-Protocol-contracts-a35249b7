@@ -4,17 +4,14 @@ pragma solidity 0.8.4;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {SafeCastUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {IiZiSwapPool} from "./iZiSwap/interfaces/IiZiSwapPool.sol";
-import {DataTypes} from "./libraries/DataTypes.sol";
-import {VaultLib} from "./libraries/VaultLib.sol";
-import {IRangeProtocolVault} from "./interfaces/IRangeProtocolVault.sol";
-import {RangeProtocolVaultStorage} from "./RangeProtocolVaultStorage.sol";
 import {OwnableUpgradeable} from "./access/OwnableUpgradeable.sol";
+import {RangeProtocolVaultStorage} from "./RangeProtocolVaultStorage.sol";
+import {IiZiSwapPool} from "./iZiSwap/interfaces/IiZiSwapPool.sol";
+import {VaultLib} from "./libraries/VaultLib.sol";
 import {VaultErrors} from "./errors/VaultErrors.sol";
 
 contract RangeProtocolVault is

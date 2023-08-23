@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.4;
 
-import "./TwoPower.sol";
-import "./LogPowMath.sol";
-import "./MulDivMath.sol";
+import {TwoPower} from "./TwoPower.sol";
+import {LogPowMath} from "./LogPowMath.sol";
+import {MulDivMath} from "./MulDivMath.sol";
 import {IiZiSwapPool} from "../interfaces/IiZiSwapPool.sol";
 
 library MintMath {
