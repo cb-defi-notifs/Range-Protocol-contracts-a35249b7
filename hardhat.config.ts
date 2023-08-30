@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://bsc.rpc.blxrbdn.com",
+        url: "https://koge-rpc-bsc.48.club",
       },
       allowUnlimitedContractSize: true,
     },

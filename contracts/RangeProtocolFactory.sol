@@ -30,21 +30,21 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
     }
 
     // @notice createVault creates a ERC1967 proxy instance for the given implementation of vault contract
-    // @param tokenA one of the tokens in the uniswap pair
-    // @param tokenB the other token in the uniswap pair
+    // @param tokenX one of the tokens in the uniswap pair
+    // @param tokenY the other token in the uniswap pair
     // @param fee fee tier of the uniswap pair
     // @param implementation address of the implementation
     // @param configData additional data associated with the specific implementation of vault
     function createVault(
-        address tokenA,
-        address tokenB,
+        address tokenX,
+        address tokenY,
         uint24 fee,
         address implementation,
         bytes memory data
     ) external override onlyOwner {
-        address pool = IiZiSwapFactory(factory).pool(tokenA, tokenB, fee);
+        address pool = IiZiSwapFactory(factory).pool(tokenX, tokenY, fee);
         if (pool == address(0x0)) revert FactoryErrors.ZeroPoolAddress();
-        address vault = _createVault(tokenA, tokenB, fee, pool, implementation, data);
+        address vault = _createVault(tokenX, tokenY, fee, pool, implementation, data);
 
         emit VaultCreated(pool, vault);
     }
@@ -102,16 +102,16 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
      * @dev Internal function to create vault proxy.
      */
     function _createVault(
-        address tokenA,
-        address tokenB,
+        address tokenX,
+        address tokenY,
         uint24 fee,
         address pool,
         address implementation,
         bytes memory data
     ) internal returns (address vault) {
         if (data.length == 0) revert FactoryErrors.NoVaultInitDataProvided();
-        if (tokenA == tokenB) revert();
-        address token0 = tokenA < tokenB ? tokenA : tokenB;
+        if (tokenX == tokenY) revert();
+        address token0 = tokenX < tokenY ? tokenX : tokenY;
         if (token0 == address(0x0)) revert("token cannot be a zero address");
 
         int24 pointDelta = IiZiSwapFactory(factory).fee2pointDelta(fee);
