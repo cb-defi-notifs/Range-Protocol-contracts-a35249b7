@@ -83,20 +83,12 @@ contract RangeProtocolVault is
         if (tokenYAmount > 0) state.tokenY.safeTransfer(msg.sender, tokenYAmount);
     }
 
-    function swapX2YCallback(
-        uint256 tokenXAmount,
-        uint256,
-        bytes calldata
-    ) external override {
+    function swapX2YCallback(uint256 tokenXAmount, uint256, bytes calldata) external override {
         if (msg.sender != address(state.pool)) revert VaultErrors.OnlyPoolAllowed();
         if (tokenXAmount > 0) state.tokenX.safeTransfer(msg.sender, tokenXAmount);
     }
 
-    function swapY2XCallback(
-        uint256,
-        uint256 tokenYAmount,
-        bytes calldata
-    ) external override {
+    function swapY2XCallback(uint256, uint256 tokenYAmount, bytes calldata) external override {
         if (msg.sender != address(state.pool)) revert VaultErrors.OnlyPoolAllowed();
         if (tokenYAmount > 0) state.tokenY.safeTransfer(msg.sender, tokenYAmount);
     }

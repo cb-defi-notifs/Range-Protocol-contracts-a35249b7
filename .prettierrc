@@ -7,7 +7,7 @@
         "tabWidth": 4,
         "useTabs": false,
         "singleQuote": false,
-        "bracketDelta": false
+        "bracketSpacing": false
       }
     }
   ]
