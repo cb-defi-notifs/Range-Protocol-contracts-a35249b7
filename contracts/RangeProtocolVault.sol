@@ -85,7 +85,7 @@ contract RangeProtocolVault is
 
     function swapX2YCallback(
         uint256 tokenXAmount,
-        uint256 tokenYAmount,
+        uint256,
         bytes calldata
     ) external override {
         if (msg.sender != address(state.pool)) revert VaultErrors.OnlyPoolAllowed();
@@ -93,7 +93,7 @@ contract RangeProtocolVault is
     }
 
     function swapY2XCallback(
-        uint256 tokenXAmount,
+        uint256,
         uint256 tokenYAmount,
         bytes calldata
     ) external override {

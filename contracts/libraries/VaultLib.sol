@@ -52,7 +52,7 @@ library VaultLib {
     event FeesUpdated(uint16 managingFee, uint16 performanceFee);
     event InThePositionStatusSet(bool inThePosition);
     event Swapped(bool zeroForOne, uint256 amount0, uint256 amount1);
-    event TicksSet(int24 lowerTick, int24 upperTick);
+    event PointsSet(int24 lowerTick, int24 upperTick);
     event MintStarted();
 
     function updatePoints(
@@ -61,7 +61,7 @@ library VaultLib {
         int24 rightPoint
     ) external {
         if (IRangeProtocolVault(address(this)).totalSupply() != 0 || state.inThePosition)
-            revert VaultErrors.NotAllowedToUpdateTicks();
+            revert VaultErrors.NotAllowedToUpdatePoints();
         _updatePoints(state, leftPoint, rightPoint);
 
         if (!state.mintStarted) {
@@ -144,8 +144,8 @@ library VaultLib {
             uint128 liquidityMinted = MintMath.getLiquidityForAmounts(
                 mintVars.leftPoint,
                 mintVars.rightPoint,
-                uint128(amountX),
-                uint128(amountY),
+                SafeCastUpgradeable.toUint128(amountX),
+                SafeCastUpgradeable.toUint128(amountY),
                 mintVars.currentPoint,
                 mintVars.sqrtPrice_96,
                 mintVars.sqrtRate_96
@@ -209,19 +209,19 @@ library VaultLib {
             (fee0, fee1) = _netPerformanceFees(state, fee0, fee1);
             emit FeesEarned(fee0, fee1);
 
-            uint256 passiveBalance0 = burnVars.tokenX.balanceOf(address(this)) - burn0;
-            uint256 passiveBalance1 = burnVars.tokenY.balanceOf(address(this)) - burn1;
-            if (passiveBalance0 > burnVars.managerBalanceX)
-                passiveBalance0 -= burnVars.managerBalanceX;
-            if (passiveBalance1 > burnVars.managerBalanceY)
-                passiveBalance1 -= burnVars.managerBalanceY;
+            uint256 passiveBalanceX = burnVars.tokenX.balanceOf(address(this)) - burn0;
+            uint256 passiveBalanceY = burnVars.tokenY.balanceOf(address(this)) - burn1;
+            if (passiveBalanceX > burnVars.managerBalanceX)
+                passiveBalanceX -= burnVars.managerBalanceX;
+            if (passiveBalanceY > burnVars.managerBalanceY)
+                passiveBalanceY -= burnVars.managerBalanceY;
 
             amountX =
                 burn0 +
-                MulDivMath.mulDivFloor(passiveBalance0, burnAmount, burnVars.totalSupply);
+                MulDivMath.mulDivFloor(passiveBalanceX, burnAmount, burnVars.totalSupply);
             amountY =
                 burn1 +
-                MulDivMath.mulDivFloor(passiveBalance1, burnAmount, burnVars.totalSupply);
+                MulDivMath.mulDivFloor(passiveBalanceY, burnAmount, burnVars.totalSupply);
         } else {
             (uint256 amountXCurrent, uint256 amountYCurrent) = getUnderlyingBalances(state);
             amountX = MulDivMath.mulDivFloor(amountXCurrent, burnAmount, burnVars.totalSupply);
@@ -236,18 +236,15 @@ library VaultLib {
         );
 
         DataTypes.UserVault storage userVault = state.userVaults[msg.sender];
-        if (amountX > 0) {
-            userVault.tokenX =
-                (userVault.tokenX * (burnVars.balanceBefore - burnAmount)) /
-                burnVars.balanceBefore;
-            burnVars.tokenX.safeTransfer(msg.sender, amountXAfterFee);
-        }
-        if (amountY > 0) {
-            userVault.tokenY =
-                (userVault.tokenY * (burnVars.balanceBefore - burnAmount)) /
-                burnVars.balanceBefore;
-            burnVars.tokenY.safeTransfer(msg.sender, amountYAfterFee);
-        }
+        userVault.tokenX =
+            (userVault.tokenX * (burnVars.balanceBefore - burnAmount)) /
+            burnVars.balanceBefore;
+        userVault.tokenY =
+            (userVault.tokenY * (burnVars.balanceBefore - burnAmount)) /
+            burnVars.balanceBefore;
+
+        if (amountX > 0) burnVars.tokenX.safeTransfer(msg.sender, amountXAfterFee);
+        if (amountY > 0) burnVars.tokenY.safeTransfer(msg.sender, amountYAfterFee);
 
         emit Burned(msg.sender, burnAmount, amountXAfterFee, amountYAfterFee);
     }
@@ -277,7 +274,7 @@ library VaultLib {
             emit FeesEarned(fee0, fee1);
         }
 
-        // TicksSet event is not emitted here since the emitting would create a new position on subgraph but
+        // PointsSet event is not emitted here since the emitting would create a new position on subgraph but
         // the following statement is to only disallow any liquidity provision through the vault unless done
         // by manager (taking into account any features added in future).
         state.leftPoint = state.rightPoint;
@@ -316,11 +313,9 @@ library VaultLib {
         uint128 amountX,
         uint128 amountY
     ) external returns (uint256 remainingAmountX, uint256 remainingAmountY) {
-        _validateTicks(newLeftPoint, newRightPoint, state.pointDelta);
+        _validatePoints(newLeftPoint, newRightPoint, state.pointDelta);
         if (state.inThePosition) revert VaultErrors.LiquidityAlreadyAdded();
-
         IiZiSwapPool _pool = state.pool;
-
         (uint160 sqrtPrice_96, int24 currentPoint, , , , , , ) = _pool.state();
         uint128 baseLiquidity = MintMath.getLiquidityForAmounts(
             newLeftPoint,
@@ -354,7 +349,7 @@ library VaultLib {
             remainingAmountY = amountY - amountDeposited1;
             state.leftPoint = newLeftPoint;
             state.rightPoint = newRightPoint;
-            emit TicksSet(newLeftPoint, newRightPoint);
+            emit PointsSet(newLeftPoint, newRightPoint);
 
             state.inThePosition = true;
             emit InThePositionStatusSet(true);
@@ -408,8 +403,7 @@ library VaultLib {
         if (!state.mintStarted) revert VaultErrors.MintNotStarted();
 
         MintAmountsVars memory mintAmountsVars;
-        (mintAmountsVars.totalSupply) = (IRangeProtocolVault(address(this)).totalSupply());
-
+        mintAmountsVars.totalSupply = IRangeProtocolVault(address(this)).totalSupply();
         if (mintAmountsVars.totalSupply > 0) {
             (amountX, amountY, mintAmount) = _calcMintAmounts(
                 state,
@@ -446,13 +440,6 @@ library VaultLib {
             );
         }
     }
-
-    //    function getUnderlyingBalancesAtPrice(
-    //        uint160 sqrtPrice_96
-    //    ) external view override returns (uint256 amountXCurrent, uint256 amountYCurrent) {
-    //        (, int24 currentPoint, , , , , , ) = pool.state();
-    //        return _getUnderlyingBalances(sqrtPrice_96, currentPoint);
-    //    }
 
     function getCurrentFees(
         DataTypes.State storage state
@@ -585,15 +572,15 @@ library VaultLib {
             (fee0, fee1) = _netPerformanceFees(state, fee0, fee1);
         }
 
-        uint256 passiveBalance0 = fee0 + state.tokenX.balanceOf(address(this));
-        uint256 passiveBalance1 = fee1 + state.tokenY.balanceOf(address(this));
+        uint256 passiveBalanceX = fee0 + state.tokenX.balanceOf(address(this));
+        uint256 passiveBalanceY = fee1 + state.tokenY.balanceOf(address(this));
 
-        amountXCurrent += passiveBalance0 > state.managerBalanceX
-            ? passiveBalance0 - state.managerBalanceX
-            : passiveBalance0;
-        amountYCurrent += passiveBalance1 > state.managerBalanceY
-            ? passiveBalance1 - state.managerBalanceY
-            : passiveBalance1;
+        amountXCurrent += passiveBalanceX > state.managerBalanceX
+            ? passiveBalanceX - state.managerBalanceX
+            : passiveBalanceX;
+        amountYCurrent += passiveBalanceY > state.managerBalanceY
+            ? passiveBalanceY - state.managerBalanceY
+            : passiveBalanceY;
     }
 
     function _withdraw(
@@ -738,23 +725,23 @@ library VaultLib {
         int24 _leftPoint,
         int24 _rightPoint
     ) private {
-        _validateTicks(_leftPoint, _rightPoint, state.pointDelta);
+        _validatePoints(_leftPoint, _rightPoint, state.pointDelta);
         state.leftPoint = _leftPoint;
         state.rightPoint = _rightPoint;
         state.inThePosition = true;
 
         emit InThePositionStatusSet(true);
-        emit TicksSet(_leftPoint, _rightPoint);
+        emit PointsSet(_leftPoint, _rightPoint);
     }
 
-    function _validateTicks(int24 _leftPoint, int24 _rightPoint, int24 _pointDelta) private pure {
+    function _validatePoints(int24 _leftPoint, int24 _rightPoint, int24 _pointDelta) private pure {
         if (_leftPoint < LEFT_MOST_PT || _rightPoint > RIGHT_MOST_PT)
-            revert VaultErrors.TicksOutOfRange();
+            revert VaultErrors.PointsOutOfRange();
 
         if (
             _leftPoint >= _rightPoint ||
             _leftPoint % _pointDelta != 0 ||
             _rightPoint % _pointDelta != 0
-        ) revert VaultErrors.InvalidTicksSpacing();
+        ) revert VaultErrors.InvalidPointsDelta();
     }
 }

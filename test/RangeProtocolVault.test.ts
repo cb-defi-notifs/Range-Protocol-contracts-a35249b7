@@ -10,12 +10,7 @@ import {
   RangeProtocolFactory,
   VaultLib,
 } from "../typechain";
-import {
-  bn,
-  getInitializeData,
-  parseEther,
-  position,
-} from "./common";
+import { bn, getInitializeData, parseEther, position } from "./common";
 import { beforeEach } from "mocha";
 import { BigNumber } from "ethers";
 
@@ -120,38 +115,38 @@ describe("RangeProtocolVault", () => {
     );
   });
 
-  it("non-manager should not be able to updateTicks", async () => {
+  it("non-manager should not be able to updatePoints", async () => {
     expect(await vault.mintStarted()).to.be.equal(false);
     await expect(
       vault.connect(nonManager).updatePoints(lowerTick, upperTick)
     ).to.be.revertedWith("Ownable: caller is not the manager");
   });
 
-  it("should not updateTicks with out of range ticks", async () => {
+  it("should not updatePoints with out of range ticks", async () => {
     await expect(
       vault.connect(manager).updatePoints(-800001, 0)
-    ).to.be.revertedWithCustomError(vaultLib, "TicksOutOfRange");
+    ).to.be.revertedWithCustomError(vaultLib, "PointsOutOfRange");
 
     await expect(
       vault.connect(manager).updatePoints(0, 800001)
-    ).to.be.revertedWithCustomError(vaultLib, "TicksOutOfRange");
+    ).to.be.revertedWithCustomError(vaultLib, "PointsOutOfRange");
   });
 
-  it("should not updateTicks with ticks not following tick spacing", async () => {
+  it("should not updatePoints with ticks not following tick spacing", async () => {
     await expect(
       vault.connect(manager).updatePoints(0, 1)
-    ).to.be.revertedWithCustomError(vaultLib, "InvalidTicksSpacing");
+    ).to.be.revertedWithCustomError(vaultLib, "InvalidPointsDelta");
 
     await expect(
       vault.connect(manager).updatePoints(1, 0)
-    ).to.be.revertedWithCustomError(vaultLib, "InvalidTicksSpacing");
+    ).to.be.revertedWithCustomError(vaultLib, "InvalidPointsDelta");
   });
 
-  it("manager should be able to updateTicks", async () => {
+  it("manager should be able to updatePoints", async () => {
     expect(await vault.mintStarted()).to.be.equal(false);
     await expect(vault.connect(manager).updatePoints(lowerTick, upperTick))
       .to.emit(vault, "MintStarted")
-      .to.emit(vault, "TicksSet")
+      .to.emit(vault, "PointsSet")
       .withArgs(lowerTick, upperTick);
 
     expect(await vault.mintStarted()).to.be.equal(true);
@@ -190,7 +185,11 @@ describe("RangeProtocolVault", () => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       amountY: _amountY,
     } = await vault.getMintAmounts(amountX, amountY);
-    console.log(ethers.utils.formatEther(_amountX), ethers.utils.formatEther(_amountY), mintAmount.toString())
+    console.log(
+      ethers.utils.formatEther(_amountX),
+      ethers.utils.formatEther(_amountY),
+      mintAmount.toString()
+    );
     // 1.999999999999999999 1.999999999999999999
 
     expect(await vault.totalSupply()).to.be.equal(0);
@@ -228,7 +227,11 @@ describe("RangeProtocolVault", () => {
       // eslint-disable-next-line @typescript-eslint/naming-convention
       amountY: _amountY,
     } = await vault.getMintAmounts(amountX, amountY);
-    console.log(ethers.utils.formatEther(_amountX), ethers.utils.formatEther(_amountY), mintAmount.toString())
+    console.log(
+      ethers.utils.formatEther(_amountX),
+      ethers.utils.formatEther(_amountY),
+      mintAmount.toString()
+    );
     // 2.0 2.0
 
     const userVault0Before = (await vault.userVaults(manager.address)).tokenX;
@@ -575,10 +578,29 @@ describe("RangeProtocolVault", () => {
       ).to.be.revertedWith("Ownable: caller is not the manager");
     });
 
+    it("should swap from X2Y", async () => {
+      const { sqrtPrice_96, currentPoint } = await iZiSwapPool.state();
+      await token0.transfer(vault.address, amountY);
+      console.log((await token1.balanceOf(vault.address)).toString());
+      await vault.swap(true, amountX, currentPoint - 200);
+      console.log((await token1.balanceOf(vault.address)).toString());
+    });
+
+    it("should swap from Y2X", async () => {
+      const { sqrtPrice_96, currentPoint } = await iZiSwapPool.state();
+      await token1.transfer(vault.address, amountY);
+      console.log((await token0.balanceOf(vault.address)).toString());
+      await vault.swap(false, amountY, currentPoint + 200);
+      console.log((await token0.balanceOf(vault.address)).toString());
+    });
+
     it("should manager collect fee", async () => {
       const { sqrtPrice_96, currentPoint } = await iZiSwapPool.state();
       await token1.transfer(vault.address, amountY);
       await vault.swap(false, amountY, currentPoint + 200);
+
+      const managerBalanceXBefore = await token0.balanceOf(manager.address);
+      const managerBalanceYBefore = await token1.balanceOf(manager.address);
 
       const { fee0, fee1 } = await vault.getCurrentFees();
       await expect(vault.pullFeeFromPool())
@@ -588,22 +610,13 @@ describe("RangeProtocolVault", () => {
       const managerBalanceX = await vault.managerBalanceX();
       const managerBalanceY = await vault.managerBalanceY();
 
-      const managerBalanceXBefore = await token0.balanceOf(manager.address);
-      const managerBalanceYBefore = await token1.balanceOf(manager.address);
       await vault.connect(manager).collectManager();
 
-      const performanceFee0 = fee0
-        .mul(await vault.performanceFee())
-        .div(10_000);
-      const performanceFee1 = fee0
-        .mul(await vault.performanceFee())
-        .div(10_000);
-
       expect(await token0.balanceOf(manager.address)).to.be.equal(
-        managerBalanceXBefore.add(managerBalanceX).add(performanceFee0)
+        managerBalanceXBefore.add(managerBalanceX)
       );
       expect(await token1.balanceOf(manager.address)).to.be.equal(
-        managerBalanceYBefore.add(managerBalanceY).add(performanceFee1)
+        managerBalanceYBefore.add(managerBalanceY)
       );
 
       expect(await vault.managerBalanceX()).to.be.equal(0);

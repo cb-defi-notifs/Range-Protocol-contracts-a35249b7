@@ -113,7 +113,7 @@ describe.skip("RangeProtocolVault::exposure", () => {
       vaultAddress[0]
     )) as RangeProtocolVault;
 
-    await expect(vault.connect(manager).updateTicks(lowerTick, upperTick));
+    await expect(vault.connect(manager).updatePoints(lowerTick, upperTick));
   });
 
   beforeEach(async () => {
