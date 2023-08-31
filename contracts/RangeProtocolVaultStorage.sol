@@ -94,7 +94,7 @@ abstract contract RangeProtocolVaultStorage is IRangeProtocolVault {
         return usersVaultInfo;
     }
 
-    function userCount() external view returns (uint256) {
+    function userCount() external view override returns (uint256) {
         return state.users.length;
     }
 }

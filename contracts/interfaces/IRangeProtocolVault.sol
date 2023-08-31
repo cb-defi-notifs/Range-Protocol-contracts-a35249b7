@@ -88,32 +88,32 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     // initializes the vault contract.
     function initialize(address _pool, int24 _tickDelta, bytes memory data) external;
 
-    // updates the left and right points of the vault.
+    // @notice updates the left and right points of the vault.
     function updatePoints(int24 _leftPoint, int24 _rightPoint) external;
 
-    // mints the vault shares to users. Intended to be called by the vault contract itself through library.
+    // @notice mints the vault shares to users. Intended to be called by the vault contract itself through library.
     function mintTo(address to, uint256 amount) external;
 
-    // mints the vaults shares for users based on the accepted collateral in tokenX and tokenY.
+    // @notice mints the vaults shares for users based on the accepted collateral in tokenX and tokenY.
     function mint(uint256 mintAmount) external returns (uint256 amountX, uint256 amountY);
 
-    // burns vault shares by the users and returns tokenX and tokenY to the users based on the vault shares burned.
+    // @notice burns vault shares by the users and returns tokenX and tokenY to the users based on the vault shares burned.
     function burn(uint256 burnAmount) external returns (uint256 amountX, uint256 amountY);
 
-    // burns vaults by the user. Intended to be called by the vault contract itself through library.
+    // @notice burns vaults by the user. Intended to be called by the vault contract itself through library.
     function burnFrom(address from, uint256 burnAmount) external;
 
-    // removes liquidity from the AMM pool. Only callable by the vault manager.
+    // @notice removes liquidity from the AMM pool. Only callable by the vault manager.
     function removeLiquidity() external;
 
-    // swap tokenX to tokenY based on the passed parameters. Only callable by the vault manager.
+    // @notice swap tokenX to tokenY based on the passed parameters. Only callable by the vault manager.
     function swap(
         bool zeroForOne,
         uint128 swapAmount,
         int24 pointLimit
     ) external returns (uint256 amountX, uint256 amountY);
 
-    // add liquidity to the AMM pool based on newer points range.
+    // @notice add liquidity to the AMM pool based on newer points range.
     function addLiquidity(
         int24 newLowerTick,
         int24 newUpperTick,
@@ -121,10 +121,10 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
         uint128 amountY
     ) external returns (uint256 remainingamountX, uint256 remainingamountY);
 
-    // collects manager fee by the manager.
+    // @notice collects manager fee by the manager.
     function collectManager() external;
 
-    // updates the fee percentages. Only callable by the vault manager.
+    // @notice updates the fee percentages. Only callable by the vault manager.
     function updateFees(uint16 newManagingFee, uint16 newPerformanceFee) external;
 
     // @return returns the mint amounts based on the amountX and amountY provided.
@@ -155,4 +155,7 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
         uint256 fromIdx,
         uint256 toIdx
     ) external view returns (DataTypes.UserVaultInfo[] memory);
+
+    // @return returns total count of the users.
+    function userCount() external view returns (uint256);
 }
