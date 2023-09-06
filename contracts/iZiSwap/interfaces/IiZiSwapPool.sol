@@ -4,13 +4,6 @@ pragma solidity 0.8.4;
 import {IiZiSwapMintCallback, IiZiSwapCallback} from "./IiZiSwapCallback.sol";
 
 interface IiZiSwapPool is IiZiSwapMintCallback, IiZiSwapCallback {
-    //    // @notice left most point regularized by pointDelta
-    //    int24 public leftMostPt;
-    //    /// @notice right most point regularized by pointDelta
-    //    int24 public rightMostPt;
-    //    /// @notice maximum liquidSum for each point, see points() in IiZiSwapPool or library Point
-    //    uint128 public maxLiquidPt;
-
     struct LiquidityData {
         uint128 liquidity;
         uint256 lastFeeScaleX_128;

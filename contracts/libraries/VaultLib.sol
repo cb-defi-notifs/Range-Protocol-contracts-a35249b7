@@ -55,6 +55,10 @@ library VaultLib {
     event PointsSet(int24 lowerTick, int24 upperTick);
     event MintStarted();
 
+    // @notice updates the points range upon vault deployment or when the vault is out of position and totalSupply is zero.
+    // It can only be called by the manager. It calls updatePoints function on the VaultLib to execute logic.
+    // @param leftPoint lower tick of the position.
+    // @param rightPoint upper tick of the position.
     function updatePoints(
         DataTypes.State storage state,
         int24 leftPoint,
@@ -80,6 +84,9 @@ library VaultLib {
         uint160 sqrtRate_96;
     }
 
+    // @notice called by the user with collateral amount to provide liquidity in collateral amount.
+    // @param amount the amount of shares to mint.
+    // @return shares the amount of shares minted.
     function mint(
         DataTypes.State storage state,
         uint256 mintAmount
@@ -165,6 +172,10 @@ library VaultLib {
         uint256 managerBalanceY;
     }
 
+    // @notice called by the user with share amount to burn their vault shares and redeem their share of the asset.
+    // @param burnAmount the amount of vault shares to burn.
+    // @return amountX the amount of tokenX received by the user.
+    // @return amountY the amount of tokenY received by the user.
     function burn(
         DataTypes.State storage state,
         uint256 burnAmount
@@ -249,6 +260,7 @@ library VaultLib {
         emit Burned(msg.sender, burnAmount, amountXAfterFee, amountYAfterFee);
     }
 
+    // @notice called by manager to remove liquidity from the pool.
     function removeLiquidity(DataTypes.State storage state) external {
         IiZiSwapPool.LiquidityData memory liquidityData = state.pool.liquidity(
             getPositionID(state)
@@ -282,6 +294,12 @@ library VaultLib {
         emit InThePositionStatusSet(false);
     }
 
+    // @notice called by manager to perform swap from token0 to token1 and vice-versa. Calls swap function on the VaultLib.
+    // @param zeroForOne swap direction (true -> x to y) or (false -> y to x)
+    // @param swapAmount amount to swap.
+    // @param pointLimit the limit pool tick can move when filling the order.
+    // @param amountX amountX added to or taken from the vault.
+    // @param amountY amountY added to or taken from the vault.
     function swap(
         DataTypes.State storage state,
         bool zeroForOne,
@@ -306,6 +324,14 @@ library VaultLib {
         emit Swapped(zeroForOne, amountX, amountY);
     }
 
+    // @notice called by manager to provide liquidity to pool into a newer tick range. Calls addLiquidity function on
+    // the VaultLib.
+    // @param newLeftPoint lower tick of the position.
+    // @param newRightPoint upper tick of the position.
+    // @param amountX amount in token0 to add.
+    // @param amountY amount in token1 to add.
+    // @return remainingAmountX amount in token0 left passive in the vault.
+    // @return remainingAmountY amount in token1 left passive in the vault.
     function addLiquidity(
         DataTypes.State storage state,
         int24 newLeftPoint,
@@ -356,6 +382,7 @@ library VaultLib {
         }
     }
 
+    // @notice called by manager to transfer the unclaimed fee from pool to the vault.
     function pullFeeFromPool(DataTypes.State storage state) external {
         (, , uint256 fee0, uint256 fee1) = _withdraw(state, 0);
         _applyPerformanceFee(state, fee0, fee1);
@@ -363,6 +390,7 @@ library VaultLib {
         emit FeesEarned(fee0, fee1);
     }
 
+    // @notice called by manager to collect fee from the vault.
     function collectManager(DataTypes.State storage state, address manager) external {
         uint256 amountX = state.managerBalanceX;
         uint256 amountY = state.managerBalanceY;
@@ -373,6 +401,9 @@ library VaultLib {
         if (amountY > 0) state.tokenY.safeTransfer(manager, amountY);
     }
 
+    // @notice called by the manager to update the fees.
+    // @param newManagingFee new managing fee percentage out of 10_000.
+    // @param newPerformanceFee new performance fee percentage out of 10_000.
     function updateFees(
         DataTypes.State storage state,
         uint16 newManagingFee,
@@ -395,6 +426,12 @@ library VaultLib {
         int24 rightPoint;
     }
 
+    // @notice returns the shares amount a user gets when they intend to provide liquidity in amountXMax and amountYMax.
+    // @param amountXMax the maximum amount of tokenX to provide for mint.
+    // @param amountYMax the maximum amount of tokenY to provide for mint.
+    // @return amountX amountX needed for minting mintAmount.
+    // @return amountY amountY needed for minting mintAmount.
+    // @return mintAmount the amount of vault shares minted with amountX and amountY.
     function getMintAmounts(
         DataTypes.State storage state,
         uint128 amountXMax,
@@ -441,6 +478,11 @@ library VaultLib {
         }
     }
 
+    /**
+     * @notice returns current unclaimed fees from the pool. Calls getCurrentFees on the VaultLib.
+     * @return fee0 fee in tokenX
+     * @return fee1 fee in tokenY
+     */
     function getCurrentFees(
         DataTypes.State storage state
     ) external view returns (uint256 fee0, uint256 fee1) {
@@ -470,10 +512,14 @@ library VaultLib {
         (fee0, fee1) = _netPerformanceFees(state, fee0, fee1);
     }
 
+    // @notice returns the total user number of who have participated in minting.
     function userCount(DataTypes.State storage state) external view returns (uint256) {
         return state.users.length;
     }
 
+    // @notice returns vault underlying balance in tokenX and tokenY.
+    // @return amountXCurrent amount in tokenX held by the vault.
+    // @return amountYCurrent amount in tokenY held by the vault.
     function getUnderlyingBalances(
         DataTypes.State storage state
     ) public view returns (uint256 amountXCurrent, uint256 amountYCurrent) {
@@ -481,6 +527,10 @@ library VaultLib {
         return _getUnderlyingBalances(state, sqrtPrice_96, currentPoint);
     }
 
+    // @notice returns underlying balances in tokenX and tokenY based on the shares amount passed.
+    // @param shares amount of vault to calculate the redeemable tokenX and tokenY amounts against.
+    // @return amountX the amount of tokenX redeemable against shares.
+    // @return amountY the amount of tokenY redeemable against shares.
     function getUnderlyingBalancesByShare(
         DataTypes.State storage state,
         uint256 shares
@@ -496,6 +546,10 @@ library VaultLib {
         }
     }
 
+    // @notice transfer hook to transfer the exposure from sender to recipient.
+    // @param from the sender of vault shares.
+    // @param to recipient of vault shares.
+    // @param amount amount of vault shares to transfer.
     function _beforeTokenTransfer(
         DataTypes.State storage state,
         address from,
@@ -528,10 +582,19 @@ library VaultLib {
         toUserVault.tokenY += tokenYAmount;
     }
 
+    // @notice returns position id of the vault in pool.
+    // @return positionId the id of the position in pool.
     function getPositionID(DataTypes.State storage state) public view returns (bytes32 positionID) {
         return keccak256(abi.encodePacked(address(this), state.leftPoint, state.rightPoint));
     }
 
+    // @notice internal function that gets vault balances from the following places.
+    // Gets tokenX and tokenY amounts from the AMM pool that includes balance from liquidity as well as the accrued fees.
+    // Gets tokenX and tokenY amounts sitting passive in the vault contract.
+    // Additionally, to avoid underflow the managerBalance is only subtracted from the vault balance if it is less than the
+    // vault balance.
+    // @return amountXCurrent amount in tokenX held by the vault.
+    // @return amountYCurrent amount in tokenY held by the vault.
     function _getUnderlyingBalances(
         DataTypes.State storage state,
         uint160 sqrtPrice_96,
@@ -583,6 +646,12 @@ library VaultLib {
             : passiveBalanceY;
     }
 
+    // @notice internal function that withdraws liquidity from the AMM pool.
+    // @param liquidity the amount liquidity to withdraw from the AMM pool.
+    // @return burn0 amount of tokenX received from burning liquidity.
+    // @return burn1 amount of tokenY received from burning liquidity.
+    // @return fee0 amount of fee in tokenX collected.
+    // @return fee1 amount of fee in tokenY collected.
     function _withdraw(
         DataTypes.State storage state,
         uint128 liquidity
@@ -603,6 +672,11 @@ library VaultLib {
         fee1 = state.tokenY.balanceOf(address(this)) - preBalance1 - burn1;
     }
 
+    // @notice calculates the mint amount based on amountXMax and amountYMax.
+    // If vault only holds amountX, then the mint amount is calculated based on amountXMax ratio with the underlying balance.
+    // If vault only holds amountY, then the mint amount is calculated based on amountYMax ratio with the underlying balance.
+    // If vault holds both amountX and amountY, then mint amount is calculated as lesser of the two ratios from
+    // amountXMax and amountYMax, respectively.
     function _calcMintAmounts(
         DataTypes.State storage state,
         uint256 totalSupply,
@@ -627,6 +701,7 @@ library VaultLib {
         amountY = MulDivMath.mulDivCeil(mintAmount, amountYCurrent, totalSupply);
     }
 
+    // @notice returns the amount of fee earned based on the feeGrowth factor.
     function _feesEarned(
         DataTypes.State storage state,
         bool isZero,
@@ -676,6 +751,9 @@ library VaultLib {
         }
     }
 
+    // @notice applies managing fee to the amountX and amountY.
+    // @param amountX the amount in tokenX to apply the managing fee.
+    // @param amountY the amount in tokenY to apply the managing fee.
     function _applyManagingFee(
         DataTypes.State storage state,
         uint256 amountX,
@@ -686,6 +764,9 @@ library VaultLib {
         state.managerBalanceY += (amountY * _managingFee) / 10_000;
     }
 
+    // @notice applies performance fee to the fee0 and fee1.
+    // @param fee0 the amount of fee0 to apply the performance fee.
+    // @param fee1 the amount of fee1 to apply the performance fee.
     function _applyPerformanceFee(
         DataTypes.State storage state,
         uint256 fee0,
@@ -696,6 +777,11 @@ library VaultLib {
         state.managerBalanceY += (fee1 * _performanceFee) / 10_000;
     }
 
+    // @notice deducts managing fee from the amountX and amountY.
+    // @param amountX the amount in tokenX to apply the managing fee.
+    // @param amountY the amount in tokenY to apply the managing fee.
+    // @return amountXAfterFee amountX after deducting managing fee.
+    // @return amountYAfterFee amountY after deducting managing fee.
     function _netManagingFees(
         DataTypes.State storage state,
         uint256 amountX,
@@ -708,6 +794,11 @@ library VaultLib {
         amountYAfterFee = amountY - deduct1;
     }
 
+    // @notice deducts performance fee from fee0 and fee1.
+    // @param rawFee0 the amount of fee0 to apply the performance fee.
+    // @param rawFee1 the amount of fee1 to apply the performance fee.
+    // @param fee0AfterDeduction fee0 after performance fee deduction.
+    // @param fee1AfterDeduction fee1 after performance fee deduction.
     function _netPerformanceFees(
         DataTypes.State storage state,
         uint256 rawFee0,
@@ -720,6 +811,7 @@ library VaultLib {
         fee1AfterDeduction = rawFee1 - deduct1;
     }
 
+    // @notice updates the left and right points.
     function _updatePoints(
         DataTypes.State storage state,
         int24 _leftPoint,
@@ -734,6 +826,7 @@ library VaultLib {
         emit PointsSet(_leftPoint, _rightPoint);
     }
 
+    // @notice validated the left and right points.
     function _validatePoints(int24 _leftPoint, int24 _rightPoint, int24 _pointDelta) private pure {
         if (_leftPoint < LEFT_MOST_PT || _rightPoint > RIGHT_MOST_PT)
             revert VaultErrors.PointsOutOfRange();
