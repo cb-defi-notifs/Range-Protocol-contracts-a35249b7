@@ -276,7 +276,10 @@ library VaultLib {
     }
 
     // @notice called by manager to remove liquidity from the pool.
-    function removeLiquidity(DataTypes.State storage state) external {
+    function removeLiquidity(
+        DataTypes.State storage state,
+        uint256[2] calldata minAmounts
+    ) external {
         IiZiSwapPool.LiquidityData memory liquidityData = state.pool.liquidity(
             getPositionID(state)
         );
@@ -287,6 +290,9 @@ library VaultLib {
                 state,
                 liquidityData.liquidity
             );
+
+            if (amountX < minAmounts[0] || amountY < minAmounts[1])
+                revert VaultErrors.SlippageExceedThreshold();
 
             emit LiquidityRemoved(
                 liquidityData.liquidity,

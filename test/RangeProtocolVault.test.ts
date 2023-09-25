@@ -401,7 +401,7 @@ describe("RangeProtocolVault", () => {
       mintAmount,
     } = await vault.getMintAmounts(amountX, amountY);
     await vault.mint(mintAmount, [amountXToAdd, amountYToAdd]);
-    await vault.removeLiquidity();
+    await vault.removeLiquidity([0, 0]);
     const shares = await vault.balanceOf(manager.address);
     const { amountX: minAmountX, amountY: minAmountY } =
       await vault.getUnderlyingBalancesByShare(shares);
@@ -458,7 +458,7 @@ describe("RangeProtocolVault", () => {
 
     it("should not remove liquidity by non-manager", async () => {
       await expect(
-        vault.connect(nonManager).removeLiquidity()
+        vault.connect(nonManager).removeLiquidity([0, 0])
       ).to.be.revertedWith("Ownable: caller is not the manager");
     });
 
@@ -471,7 +471,7 @@ describe("RangeProtocolVault", () => {
       expect(liquidityBefore).not.to.be.equal(0);
 
       const { fee0, fee1 } = await vault.getCurrentFees();
-      await expect(vault.removeLiquidity())
+      await expect(vault.removeLiquidity([0, 0]))
         .to.emit(vault, "InThePositionStatusSet")
         .withArgs(false)
         .to.emit(vault, "FeesEarned")
@@ -491,7 +491,7 @@ describe("RangeProtocolVault", () => {
       );
 
       expect(liquidity).to.be.equal(0);
-      await expect(vault.removeLiquidity())
+      await expect(vault.removeLiquidity([0, 0]))
         .to.be.emit(vault, "InThePositionStatusSet")
         .withArgs(false)
         .not.to.emit(vault, "FeesEarned");
@@ -548,7 +548,7 @@ describe("RangeProtocolVault", () => {
         mintAmount,
       } = await vault.getMintAmounts(amountX, amountY);
       await vault.mint(mintAmount, [amountXToAdd, amountYToAdd]);
-      await vault.removeLiquidity();
+      await vault.removeLiquidity([0, 0]);
     });
 
     it("should not add liquidity by non-manager", async () => {

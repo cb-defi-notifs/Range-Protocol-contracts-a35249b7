@@ -110,7 +110,7 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     function burnFrom(address from, uint256 burnAmount) external;
 
     // @notice removes liquidity from the AMM pool. Only callable by the vault manager.
-    function removeLiquidity() external;
+    function removeLiquidity(uint256[2] calldata minAmounts) external;
 
     // @notice swap tokenX to tokenY based on the passed parameters. Only callable by the vault manager.
     function swap(

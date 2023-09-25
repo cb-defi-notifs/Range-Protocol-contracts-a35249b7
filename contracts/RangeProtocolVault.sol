@@ -182,8 +182,8 @@ contract RangeProtocolVault is
     }
 
     // @notice called by manager to remove liquidity from the pool. Calls removeLiquidity function on the VaultLib.
-    function removeLiquidity() external override onlyManager {
-        VaultLib.removeLiquidity(state);
+    function removeLiquidity(uint256[2] calldata minAmounts) external override onlyManager {
+        VaultLib.removeLiquidity(state, minAmounts);
     }
 
     /**
