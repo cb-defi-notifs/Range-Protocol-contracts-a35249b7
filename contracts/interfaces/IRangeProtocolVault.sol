@@ -95,10 +95,16 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     function mintTo(address to, uint256 amount) external;
 
     // @notice mints the vaults shares for users based on the accepted collateral in tokenX and tokenY.
-    function mint(uint256 mintAmount) external returns (uint256 amountX, uint256 amountY);
+    function mint(
+        uint256 mintAmount,
+        uint256[2] calldata minAmounts
+    ) external returns (uint256 amountX, uint256 amountY);
 
     // @notice burns vault shares by the users and returns tokenX and tokenY to the users based on the vault shares burned.
-    function burn(uint256 burnAmount) external returns (uint256 amountX, uint256 amountY);
+    function burn(
+        uint256 burnAmount,
+        uint256[2] calldata minAmounts
+    ) external returns (uint256 amountX, uint256 amountY);
 
     // @notice burns vaults by the user. Intended to be called by the vault contract itself through library.
     function burnFrom(address from, uint256 burnAmount) external;
@@ -110,7 +116,8 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     function swap(
         bool zeroForOne,
         uint128 swapAmount,
-        int24 pointLimit
+        int24 pointLimit,
+        uint256 minAmountIn
     ) external returns (uint256 amountX, uint256 amountY);
 
     // @notice add liquidity to the AMM pool based on newer points range.
@@ -118,8 +125,9 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
         int24 newLowerTick,
         int24 newUpperTick,
         uint128 amountX,
-        uint128 amountY
-    ) external returns (uint256 remainingamountX, uint256 remainingamountY);
+        uint128 amountY,
+        uint256[2] calldata minAmounts
+    ) external returns (uint256 remainingAmountX, uint256 remainingamountY);
 
     // @notice collects manager fee by the manager.
     function collectManager() external;

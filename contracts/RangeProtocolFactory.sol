@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IiZiSwapFactory} from "./iZiSwap/interfaces/IiZiSwapFactory.sol";
 import {IiZiSwapPool} from "./iZiSwap/interfaces/IiZiSwapPool.sol";
 import {IRangeProtocolFactory} from "./interfaces/IRangeProtocolFactory.sol";
@@ -19,7 +20,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
 
     bytes4 public constant UPGRADE_SELECTOR = bytes4(keccak256(bytes("upgradeTo(address)")));
 
-    /// @notice Uniswap v3 factory
+    /// @notice iZiSwap v3 factory
     address public immutable factory;
 
     /// @notice all deployed vault instances
@@ -30,9 +31,9 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
     }
 
     // @notice createVault creates a ERC1967 proxy instance for the given implementation of vault contract
-    // @param tokenX one of the tokens in the uniswap pair
-    // @param tokenY the other token in the uniswap pair
-    // @param fee fee tier of the uniswap pair
+    // @param tokenX one of the tokens in the iZiSwap pair
+    // @param tokenY the other token in the iZiSwap pair
+    // @param fee fee tier of the iZiSwap pair
     // @param implementation address of the implementation
     // @param configData additional data associated with the specific implementation of vault
     function createVault(
@@ -88,7 +89,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
     ) external view returns (address[] memory vaultList) {
         vaultList = new address[](endIdx - startIdx + 1);
         for (uint256 i = startIdx; i <= endIdx; i++) {
-            vaultList[i] = _vaultsList[i];
+            vaultList[i - startIdx] = _vaultsList[i];
         }
     }
 
@@ -110,7 +111,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
         bytes memory data
     ) internal returns (address vault) {
         if (data.length == 0) revert FactoryErrors.NoVaultInitDataProvided();
-        if (tokenX == tokenY) revert();
+        if (tokenX == tokenY) revert FactoryErrors.SameTokensAddresses();
         address token0 = tokenX < tokenY ? tokenX : tokenY;
         if (token0 == address(0x0)) revert("token cannot be a zero address");
 
@@ -128,6 +129,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
      * @dev Internal function to upgrade a vault's implementation.
      */
     function _upgradeVault(address _vault, address _impl) internal {
+        if (!Address.isContract(_impl)) revert FactoryErrors.ImplIsNotAContract();
         (bool success, ) = _vault.call(abi.encodeWithSelector(UPGRADE_SELECTOR, _impl));
 
         if (!success) revert FactoryErrors.VaultUpgradeFailed();

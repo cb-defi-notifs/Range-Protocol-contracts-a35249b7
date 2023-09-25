@@ -1,80 +1,41 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.4;
 
-//import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-//import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-//import "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol";
-//
-//contract SwapTest is IUniswapV3SwapCallback {
-//    function swapZeroForOne(address pool, int256 amountSpecified) external {
-//        (uint160 sqrtRatio, , , , , , ) = IUniswapV3Pool(pool).slot0();
-//        uint160 nextSqrtRatio = sqrtRatio +
-//            uint160(uint160(uint256(amountSpecified) * 2 ** 96) / IUniswapV3Pool(pool).liquidity());
-//
-//        IUniswapV3Pool(pool).swap(
-//            address(msg.sender),
-//            false,
-//            amountSpecified,
-//            nextSqrtRatio,
-//            abi.encode(msg.sender)
-//        );
-//    }
-//
-//    function washTrade(
-//        address pool,
-//        int256 amountSpecified,
-//        uint256 numTrades,
-//        uint256 ratio
-//    ) external {
-//        for (uint256 i = 0; i < numTrades; i++) {
-//            bool zeroForOne = i % ratio > 0;
-//            (uint160 sqrtRatio, , , , , , ) = IUniswapV3Pool(pool).slot0();
-//            IUniswapV3Pool(pool).swap(
-//                address(msg.sender),
-//                zeroForOne,
-//                amountSpecified,
-//                zeroForOne ? sqrtRatio - 1000 : sqrtRatio + 1000,
-//                abi.encode(msg.sender)
-//            );
-//        }
-//    }
-//
-//    function getSwapResult(
-//        address pool,
-//        bool zeroForOne,
-//        int256 amountSpecified,
-//        uint160 sqrtPriceLimitX96
-//    ) external returns (int256 amount0Delta, int256 amount1Delta, uint160 nextSqrtRatio) {
-//        (amount0Delta, amount1Delta) = IUniswapV3Pool(pool).swap(
-//            address(msg.sender),
-//            zeroForOne,
-//            amountSpecified,
-//            sqrtPriceLimitX96,
-//            abi.encode(msg.sender)
-//        );
-//
-//        (nextSqrtRatio, , , , , , ) = IUniswapV3Pool(pool).slot0();
-//    }
-//
-//    function uniswapV3SwapCallback(
-//        int256 amount0Delta,
-//        int256 amount1Delta,
-//        bytes calldata data
-//    ) external override {
-//        address sender = abi.decode(data, (address));
-//
-//        if (amount0Delta > 0) {
-//            IERC20(IUniswapV3Pool(msg.sender).token0()).transferFrom(
-//                sender,
-//                msg.sender,
-//                uint256(amount0Delta)
-//            );
-//        } else if (amount1Delta > 0) {
-//            IERC20(IUniswapV3Pool(msg.sender).token1()).transferFrom(
-//                sender,
-//                msg.sender,
-//                uint256(amount1Delta)
-//            );
-//        }
-//    }
-//}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "contracts/iZiSwap/interfaces/IiZiSwapPool.sol";
+import "contracts/iZiSwap/interfaces/IiZiSwapCallback.sol";
+
+contract SwapTest is IiZiSwapCallback {
+    function mint(address pool, uint128 mintAmount) external {
+        IiZiSwapPool(pool).mint(address(this), -10000, 20000, mintAmount, "");
+    }
+
+    function mintDepositCallback(uint256 x, uint256 y, bytes calldata data) external {
+        IERC20(IiZiSwapPool(msg.sender).tokenX()).transfer(msg.sender, x);
+        IERC20(IiZiSwapPool(msg.sender).tokenY()).transfer(msg.sender, y);
+    }
+
+    function swapOneForZero(address pool, uint128 amountSpecified) external {
+        (, int24 currentPoint, , , , , , ) = IiZiSwapPool(pool).state();
+
+        IERC20(IiZiSwapPool(pool).tokenX()).transferFrom(
+            msg.sender,
+            address(this),
+            uint256(amountSpecified)
+        );
+
+        IiZiSwapPool(pool).swapX2Y(
+            address(msg.sender),
+            amountSpecified,
+            currentPoint - 200,
+            abi.encode(msg.sender)
+        );
+    }
+
+    function swapX2YCallback(uint256 tokenXAmount, uint256, bytes calldata) external override {
+        if (tokenXAmount > 0)
+            IERC20(IiZiSwapPool(msg.sender).tokenX()).transfer(msg.sender, tokenXAmount);
+    }
+
+    function swapY2XCallback(uint256 x, uint256 y, bytes calldata data) external override {}
+}

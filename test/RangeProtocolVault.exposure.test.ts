@@ -4,28 +4,21 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import {
   IERC20,
-  IUniswapV3Factory,
-  IUniswapV3Pool,
+  IIiZiSwapFactory,
+  IiZiSwapPool,
   RangeProtocolVault,
   RangeProtocolFactory,
   SwapTest,
 } from "../typechain";
-import {
-  bn,
-  encodePriceSqrt,
-  getInitializeData,
-  parseEther,
-  position,
-} from "./common";
+import { bn, getInitializeData, parseEther } from "./common";
 import { beforeEach } from "mocha";
 import { BigNumber } from "ethers";
 
 let factory: RangeProtocolFactory;
 let vaultImpl: RangeProtocolVault;
 let vault: RangeProtocolVault;
-let uniV3Factory: IUniswapV3Factory;
-let univ3Pool: IUniswapV3Pool;
-let nonfungiblePositionManager: INonfungiblePositionManager;
+let iZiSwapFactory: IIiZiSwapFactory;
+let iZiSwapPool: IiZiSwapPool;
 let token0: IERC20;
 let token1: IERC20;
 let manager: SignerWithAddress;
@@ -34,38 +27,29 @@ let nonManager: SignerWithAddress;
 let newManager: SignerWithAddress;
 let user2: SignerWithAddress;
 let lpProvider: SignerWithAddress;
-const poolFee = 3000;
+const poolFee = 10000;
 const name = "Test Token";
 const symbol = "TT";
-const amount0: BigNumber = parseEther("2");
-const amount1: BigNumber = parseEther("3");
+const amountX: BigNumber = parseEther("2");
+const amountY: BigNumber = parseEther("3");
 let initializeData: any;
-const lowerTick = -887220;
-const upperTick = 887220;
+const lowerTick = -10000;
+const upperTick = 20000;
 
-describe.skip("RangeProtocolVault::exposure", () => {
+describe("RangeProtocolVault::exposure", () => {
   before(async () => {
     [manager, nonManager, user2, newManager, trader, lpProvider] =
       await ethers.getSigners();
-    const UniswapV3Factory = await ethers.getContractFactory(
-      "UniswapV3Factory"
+    iZiSwapFactory = await ethers.getContractAt(
+      "IiZiSwapFactory",
+      "0x93BB94a0d5269cb437A1F71FF3a77AB753844422"
     );
-    uniV3Factory = (await UniswapV3Factory.deploy()) as IUniswapV3Factory;
-
-    const NonfungiblePositionManager = await ethers.getContractFactory(
-      "NonfungiblePositionManager"
-    );
-    nonfungiblePositionManager = (await NonfungiblePositionManager.deploy(
-      uniV3Factory.address,
-      trader.address,
-      trader.address
-    )) as INonfungiblePositionManager;
 
     const RangeProtocolFactory = await ethers.getContractFactory(
       "RangeProtocolFactory"
     );
     factory = (await RangeProtocolFactory.deploy(
-      uniV3Factory.address
+      iZiSwapFactory.address
     )) as RangeProtocolFactory;
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
@@ -78,26 +62,29 @@ describe.skip("RangeProtocolVault::exposure", () => {
       token1 = tmp;
     }
 
-    await uniV3Factory.createPool(token0.address, token1.address, poolFee);
-    univ3Pool = (await ethers.getContractAt(
-      "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool",
-      await uniV3Factory.getPool(token0.address, token1.address, poolFee)
-    )) as IUniswapV3Pool;
+    await iZiSwapFactory.newPool(token0.address, token1.address, poolFee, 1);
+    iZiSwapPool = (await ethers.getContractAt(
+      "IiZiSwapPool",
+      await iZiSwapFactory.pool(token0.address, token1.address, poolFee)
+    )) as IiZiSwapPool;
 
-    await univ3Pool.initialize(encodePriceSqrt("1", "1"));
-    await univ3Pool.increaseObservationCardinalityNext("15");
+    const VaultLib = await ethers.getContractFactory("VaultLib");
+    const vaultLib = await VaultLib.deploy();
+    const RangeProtocolVault = await ethers.getContractFactory(
+      "RangeProtocolVault",
+      {
+        libraries: {
+          VaultLib: vaultLib.address,
+        },
+      }
+    );
+    vaultImpl = (await RangeProtocolVault.deploy()) as RangeProtocolVault;
 
     initializeData = getInitializeData({
       managerAddress: manager.address,
       name,
       symbol,
     });
-
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const RangeProtocolVault = await ethers.getContractFactory(
-      "RangeProtocolVault"
-    );
-    vaultImpl = (await RangeProtocolVault.deploy()) as RangeProtocolVault;
 
     await factory.createVault(
       token0.address,
@@ -112,13 +99,12 @@ describe.skip("RangeProtocolVault::exposure", () => {
       "RangeProtocolVault",
       vaultAddress[0]
     )) as RangeProtocolVault;
-
     await expect(vault.connect(manager).updatePoints(lowerTick, upperTick));
   });
 
   beforeEach(async () => {
-    await token0.approve(vault.address, amount0.mul(bn(2)));
-    await token1.approve(vault.address, amount1.mul(bn(2)));
+    await token0.approve(vault.address, amountX.mul(bn(2)));
+    await token1.approve(vault.address, amountY.mul(bn(2)));
   });
 
   it("should mint with zero totalSupply of vault shares", async () => {
@@ -126,49 +112,26 @@ describe.skip("RangeProtocolVault::exposure", () => {
     await token1.connect(lpProvider).mint();
 
     const {
-      mintAmount: mintAmountLpProvider,
-      amount0: amount0LpProvider,
-      amount1: amount1LpProvider,
-    } = await vault.getMintAmounts(amount0.mul(10), amount1.mul(10));
-    await token0
-      .connect(lpProvider)
-      .approve(nonfungiblePositionManager.address, amount0LpProvider);
-    await token1
-      .connect(lpProvider)
-      .approve(nonfungiblePositionManager.address, amount1LpProvider);
-
-    await nonfungiblePositionManager
-      .connect(lpProvider)
-      .mint([
-        token0.address,
-        token1.address,
-        3000,
-        lowerTick,
-        upperTick,
-        amount0LpProvider,
-        amount1LpProvider,
-        0,
-        0,
-        lpProvider.address,
-        new Date().getTime() + 10000000,
-      ]);
-
-    const {
       mintAmount: mintAmount1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      amount0: amount0Mint1,
+      amountX: amountXMint1,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      amount1: amount1Mint1,
-    } = await vault.getMintAmounts(amount0, amount1);
+      amountY: amountYMint1,
+    } = await vault.getMintAmounts(amountX, amountY);
 
-    await expect(vault.mint(mintAmount1))
+    await expect(vault.mint(mintAmount1, [amountXMint1, amountYMint1]))
       .to.emit(vault, "Minted")
-      .withArgs(manager.address, mintAmount1, amount0Mint1, amount1Mint1);
+      .withArgs(
+        manager.address,
+        mintAmount1,
+        amountXMint1.toString(),
+        amountYMint1.toString()
+      );
 
     console.log("Users 1:");
     console.log("mint amount: ", mintAmount1.toString());
-    console.log("token0 amount: ", amount0Mint1.toString());
-    console.log("token1 amount: ", amount1Mint1.toString());
+    console.log("token0 amount: ", amountXMint1.toString());
+    console.log("token1 amount: ", amountYMint1.toString());
     console.log("==================================================");
 
     await token0.connect(newManager).mint();
@@ -176,32 +139,34 @@ describe.skip("RangeProtocolVault::exposure", () => {
 
     const {
       mintAmount: mintAmount2,
-      amount0: amount0Mint2,
-      amount1: amount1Mint2,
-    } = await vault.getMintAmounts(amount0, amount1);
-    await token0.connect(newManager).approve(vault.address, amount0Mint2);
-    await token1.connect(newManager).approve(vault.address, amount1Mint2);
+      amountX: amountXMint2,
+      amountY: amountYMint2,
+    } = await vault.getMintAmounts(amountX, amountY);
+    await token0.connect(newManager).approve(vault.address, amountXMint2);
+    await token1.connect(newManager).approve(vault.address, amountYMint2);
 
-    await vault.connect(newManager).mint(mintAmount2);
+    await vault
+      .connect(newManager)
+      .mint(mintAmount2, [amountXMint2, amountYMint2]);
 
     console.log("Users 2:");
     console.log("mint amount: ", mintAmount1.toString());
-    console.log("token0 amount: ", amount0Mint2.toString());
-    console.log("token1 amount: ", amount1Mint2.toString());
+    console.log("token0 amount: ", amountXMint2.toString());
+    console.log("token1 amount: ", amountYMint2.toString());
     console.log("==================================================");
 
     const SwapTest = await ethers.getContractFactory("SwapTest");
     const swapTest = (await SwapTest.deploy()) as SwapTest;
 
-    const { amount0Current: amount0Current1, amount1Current: amount1Current1 } =
+    const { amountXCurrent: amountXCurrent1, amountYCurrent: amountYCurrent1 } =
       await vault.getUnderlyingBalances();
     console.log("Vault balance: ");
-    console.log("token0 amount: ", amount0Current1.toString());
-    console.log("token1 amount: ", amount1Current1.toString());
+    console.log("token0 amount: ", amountXCurrent1.toString());
+    console.log("token1 amount: ", amountYCurrent1.toString());
     console.log("==================================================");
 
     console.log(
-      "perform external swap " + amount1.toString(),
+      "perform external swap " + amountY.toString(),
       " of token1 to token0 to move price"
     );
     console.log("==================================================");
@@ -209,16 +174,18 @@ describe.skip("RangeProtocolVault::exposure", () => {
     await token0.connect(trader).mint();
     await token1.connect(trader).mint();
 
-    await token0.connect(trader).approve(swapTest.address, amount0);
-    await token1.connect(trader).approve(swapTest.address, amount1);
+    await token0.connect(trader).approve(swapTest.address, amountX);
+    await token1.connect(trader).approve(swapTest.address, amountY);
 
-    await swapTest.connect(trader).swapZeroForOne(univ3Pool.address, amount1);
+    await swapTest
+      .connect(trader)
+      .swapOneForZero(iZiSwapPool.address, amountY.div(bn(4)));
 
-    const { amount0Current: amount0Current2, amount1Current: amount1Current2 } =
+    const { amountXCurrent: amountXCurrent2, amountYCurrent: amountYCurrent2 } =
       await vault.getUnderlyingBalances();
     console.log("Vault balance after swap: ");
-    console.log("token0 amount: ", amount0Current2.toString());
-    console.log("token1 amount: ", amount1Current2.toString());
+    console.log("token0 amount: ", amountXCurrent2.toString());
+    console.log("token1 amount: ", amountYCurrent2.toString());
     console.log("==================================================");
 
     console.log("User2 mints for the second time (after price movement)");
@@ -227,18 +194,20 @@ describe.skip("RangeProtocolVault::exposure", () => {
 
     const {
       mintAmount: mintAmount3,
-      amount0: amount0Mint3,
-      amount1: amount1Mint3,
-    } = await vault.getMintAmounts(amount0, amount1);
-    await token0.connect(newManager).approve(vault.address, amount0Mint3);
-    await token1.connect(newManager).approve(vault.address, amount1Mint3);
+      amountX: amountXMint3,
+      amountY: amountYMint3,
+    } = await vault.getMintAmounts(amountX, amountY);
+    await token0.connect(newManager).approve(vault.address, amountXMint3);
+    await token1.connect(newManager).approve(vault.address, amountYMint3);
     console.log("Users 2:");
     console.log(
       "vault shares before: ",
       (await vault.balanceOf(newManager.address)).toString()
     );
 
-    await vault.connect(newManager).mint(mintAmount3);
+    await vault
+      .connect(newManager)
+      .mint(mintAmount3, [amountXMint3, amountYMint3]);
     console.log(
       "vault shares after: ",
       (await vault.balanceOf(newManager.address)).toString()
@@ -248,10 +217,10 @@ describe.skip("RangeProtocolVault::exposure", () => {
 
     console.log("Vault balance after user2 mints for the second time: ");
 
-    const { amount0Current: amount0Current3, amount1Current: amount1Current3 } =
+    const { amountXCurrent: amountXCurrent3, amountYCurrent: amountYCurrent3 } =
       await vault.getUnderlyingBalances();
-    console.log("token0 amount: ", amount0Current3.toString());
-    console.log("token1 amount: ", amount1Current3.toString());
+    console.log("token0 amount: ", amountXCurrent3.toString());
+    console.log("token1 amount: ", amountYCurrent3.toString());
     console.log("==================================================");
 
     console.log("Remove liquidity from uniswap pool");
@@ -260,113 +229,143 @@ describe.skip("RangeProtocolVault::exposure", () => {
 
     console.log("Total users vault amounts based on their initial deposits");
     const userVaults = await vault.getUserVaults(0, 0);
-    const { token0VaultTotal, token1VaultTotal } = userVaults.reduce(
-      (acc, { token0, token1 }) => {
+    const { tokenXVaultTotal, tokenYVaultTotal } = userVaults.reduce(
+      (acc, { tokenX, tokenY }) => {
         return {
-          token0VaultTotal: acc.token0VaultTotal.add(token0),
-          token1VaultTotal: acc.token1VaultTotal.add(token1),
+          tokenXVaultTotal: acc.tokenXVaultTotal.add(tokenX),
+          tokenYVaultTotal: acc.tokenYVaultTotal.add(tokenY),
         };
       },
       {
-        token0VaultTotal: bn(0),
-        token1VaultTotal: bn(0),
+        tokenXVaultTotal: bn(0),
+        tokenYVaultTotal: bn(0),
       }
     );
-    console.log("token0: ", token0VaultTotal.toString());
-    console.log("token1: ", token1VaultTotal.toString());
+    console.log("token0: ", tokenXVaultTotal.toString());
+    console.log("token1: ", tokenYVaultTotal.toString());
     console.log("==================================================");
 
     console.log("perform vault swap to maintain users' vault exposure");
+
+    await token0.transfer(swapTest.address, amountX);
+    await token1.transfer(swapTest.address, amountY);
+    await swapTest.mint(await vault.pool(), ethers.utils.parseEther("0.00001"));
     let initialAmountBaseToken,
       initialAmountQuoteToken,
       currentAmountBaseToken,
       currentAmountQuoteToken;
-    initialAmountBaseToken = token0VaultTotal;
-    initialAmountQuoteToken = token1VaultTotal;
-    currentAmountBaseToken = amount0Current3;
-    currentAmountQuoteToken = amount1Current3;
+    initialAmountBaseToken = tokenXVaultTotal;
+    initialAmountQuoteToken = tokenYVaultTotal;
+    currentAmountBaseToken = amountXCurrent3;
+    currentAmountQuoteToken = amountYCurrent3;
 
-    const swapAmountToken0 = amount0Current3.sub(token0VaultTotal);
-    const swapAmountToken1 = amount1Current3.sub(token1VaultTotal);
-
-    const MockSqrtPriceMath = await ethers.getContractFactory(
-      "MockSqrtPriceMath"
-    );
-    const mockSqrtPriceMath = await MockSqrtPriceMath.deploy();
-
-    const { sqrtPriceX96 } = await univ3Pool.slot0();
-    const liquidity = await univ3Pool.liquidity();
-
-    const nextPrice = currentAmountBaseToken.gt(initialAmountBaseToken)
+    let { sqrtPrice_96, currentPoint } = await iZiSwapPool.state();
+    const nextPoint = currentAmountBaseToken.gt(initialAmountBaseToken)
       ? // there is profit in base token that we swap to quote token
-        await mockSqrtPriceMath.getNextSqrtPriceFromInput(
-          sqrtPriceX96,
-          liquidity,
-          currentAmountBaseToken.sub(initialAmountBaseToken),
-          true
-        )
+        currentPoint - 100
       : // there is loss in base token that is realized in quote token
-        await mockSqrtPriceMath.getNextSqrtPriceFromInput(
-          sqrtPriceX96,
-          liquidity,
-          initialAmountBaseToken.sub(currentAmountBaseToken),
-          false
-        );
+        currentPoint + 100;
 
+    const zeroForOne = currentAmountBaseToken.gt(initialAmountBaseToken);
+    const { amountX: _amountX, amountY: _amountY } =
+      await vault.callStatic.swap(
+        zeroForOne,
+        currentAmountBaseToken.sub(initialAmountBaseToken),
+        nextPoint,
+        0
+      );
     await vault.swap(
-      currentAmountBaseToken.gt(initialAmountBaseToken),
+      zeroForOne,
       currentAmountBaseToken.sub(initialAmountBaseToken),
-      nextPrice
+      nextPoint,
+      zeroForOne ? _amountY : _amountX
     );
     console.log("==================================================");
     console.log("Vault balance after swap to maintain users' vault exposure: ");
 
-    const { amount0Current: amount0Current4, amount1Current: amount1Current4 } =
+    const { amountXCurrent: amountXCurrent4, amountYCurrent: amountYCurrent4 } =
       await vault.getUnderlyingBalances();
-    console.log("token0 amount: ", amount0Current4.toString());
-    console.log("token1 amount: ", amount1Current4.toString());
+    console.log("token0 amount: ", amountXCurrent4.toString());
+    console.log("token1 amount: ", amountYCurrent4.toString());
     console.log("==================================================");
 
     console.log("Add liquidity back to the uniswap v3 pool");
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const MockMintMath = await ethers.getContractFactory("MockMintMath");
+    const mockMintMath = await MockMintMath.deploy();
+
+    ({ sqrtPrice_96, currentPoint } = await iZiSwapPool.state());
+    const sqrtRate_96 = await iZiSwapPool.sqrtRate_96();
+    const liquidity = await mockMintMath.getLiquidityForAmounts(
+      lowerTick,
+      upperTick,
+      amountXCurrent4,
+      amountYCurrent4,
+      currentPoint,
+      sqrtPrice_96,
+      sqrtRate_96
+    );
+    const { x, y } = await mockMintMath.getAmountsForLiquidity(
+      sqrtPrice_96,
+      sqrtRate_96,
+      currentPoint,
+      liquidity,
+      lowerTick,
+      upperTick
+    );
     await vault.addLiquidity(
       lowerTick,
       upperTick,
-      amount0Current4,
-      amount1Current4
+      amountXCurrent4,
+      amountYCurrent4,
+      [x.mul(9900).div(10000), y.mul(9900).div(10000)]
     );
 
     console.log("==================================================");
     console.log(
       "Vault balance after providing the liquidity back to the uniswap pool"
     );
-    const { amount0Current: amount0Current5, amount1Current: amount1Current5 } =
+    const { amountXCurrent: amountXCurrent5, amountYCurrent: amountYCurrent5 } =
       await vault.getUnderlyingBalances();
-    console.log("token0 amount: ", amount0Current5.toString());
-    console.log("token1 amount: ", amount1Current5.toString());
+    console.log("token0 amount: ", amountXCurrent5.toString());
+    console.log("token1 amount: ", amountYCurrent5.toString());
     console.log("==================================================");
 
     console.log("user 1 withdraws liquidity");
     const user1Amount = await vault.balanceOf(manager.address);
-    await vault.burn(user1Amount);
+    let { amountX: minAmountX, amountY: minAmountY } =
+      await vault.getUnderlyingBalancesByShare(user1Amount);
+    console.log(minAmountX.toString(), minAmountY.toString());
+    await vault.burn(user1Amount, [
+      minAmountX.mul(9900).div(10000),
+      minAmountY.mul(9900).div(10000),
+    ]);
 
     console.log("==================================================");
     console.log("Vault balance after user1 withdraws liquidity");
-    const { amount0Current: amount0Current6, amount1Current: amount1Current6 } =
+    const { amountXCurrent: amountXCurrent6, amountYCurrent: amountYCurrent6 } =
       await vault.getUnderlyingBalances();
-    console.log("token0 amount: ", amount0Current6.toString());
-    console.log("token1 amount: ", amount1Current6.toString());
+    console.log("token0 amount: ", amountXCurrent6.toString());
+    console.log("token1 amount: ", amountYCurrent6.toString());
     console.log("==================================================");
 
     console.log("user 2 withdraws liquidity");
     const user2Amount = await vault.balanceOf(newManager.address);
-    await vault.connect(newManager).burn(user2Amount);
+    ({ amountX: minAmountX, amountY: minAmountY } =
+      await vault.getUnderlyingBalancesByShare(user2Amount));
+    await vault
+      .connect(newManager)
+      .burn(user2Amount, [
+        minAmountX.mul(9900).div(10000),
+        minAmountY.mul(9900).div(10000),
+      ]);
 
     console.log("==================================================");
     console.log("Vault balance after user2 withdraws liquidity");
-    const { amount0Current: amount0Current7, amount1Current: amount1Current7 } =
+    const { amountXCurrent: amountXCurrent7, amountYCurrent: amountYCurrent7 } =
       await vault.getUnderlyingBalances();
-    console.log("token0 amount: ", amount0Current7.toString());
-    console.log("token1 amount: ", amount1Current7.toString());
+    console.log("token0 amount: ", amountXCurrent7.toString());
+    console.log("token1 amount: ", amountYCurrent7.toString());
     console.log("==================================================");
   });
 });

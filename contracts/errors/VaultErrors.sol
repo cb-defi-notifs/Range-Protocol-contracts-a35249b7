@@ -18,4 +18,6 @@ library VaultErrors {
     error OnlyFactoryAllowed();
     error LiquidityAlreadyAdded();
     error OnlySelfCallAllowed();
+    error ZeroManagerAddress();
+    error SlippageExceedThreshold();
 }
