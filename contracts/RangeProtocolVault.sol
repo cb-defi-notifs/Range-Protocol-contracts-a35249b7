@@ -156,15 +156,15 @@ contract RangeProtocolVault is
      * @notice called by the user with collateral amount to provide liquidity in collateral amount. Calls mint function
      * on the VaultLib to execute logic.
      * @param mintAmount the amount of shares to mint.
-     * @param minAmounts amount of tokenX and tokenY user desires to add.
+     * @param maxAmounts amount of tokenX and tokenY user desires to add.
      * @return amountX the amount of tokenX taken from the user.
      * @return amountY the amount of tokenY taken from the user.
      */
     function mint(
         uint256 mintAmount,
-        uint256[2] calldata minAmounts
+        uint256[2] calldata maxAmounts
     ) external override nonReentrant whenNotPaused returns (uint256 amountX, uint256 amountY) {
-        return VaultLib.mint(state, mintAmount, minAmounts);
+        return VaultLib.mint(state, mintAmount, maxAmounts);
     }
 
     /**

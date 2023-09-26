@@ -88,14 +88,14 @@ library VaultLib {
     /**
      * @notice called by the user with collateral amount to provide liquidity in collateral amount.
      * @param mintAmount the amount of liquidity user intends to mint.
-     * @param minAmounts amount of tokenX and tokenY.
+     * @param maxAmounts amount of tokenX and tokenY.
      * @return amountX amount of tokenX taken from the user.
      * @return amountY amount of tokenY taken from the user.
      */
     function mint(
         DataTypes.State storage state,
         uint256 mintAmount,
-        uint256[2] calldata minAmounts
+        uint256[2] calldata maxAmounts
     ) external returns (uint256 amountX, uint256 amountY) {
         if (mintAmount == 0) revert VaultErrors.InvalidMintAmount();
         if (!state.mintStarted) revert VaultErrors.MintNotStarted();
@@ -140,7 +140,7 @@ library VaultLib {
             revert VaultErrors.MintNotAllowed();
         }
 
-        if (amountX < minAmounts[0] || amountY < minAmounts[1])
+        if (amountX > maxAmounts[0] || amountY > maxAmounts[1])
             revert VaultErrors.SlippageExceedThreshold();
 
         DataTypes.UserVault storage userVault = state.userVaults[msg.sender];

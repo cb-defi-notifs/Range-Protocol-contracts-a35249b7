@@ -233,7 +233,7 @@ describe("RangeProtocolVault", () => {
     } = await vault.getMintAmounts(amountX, amountY);
 
     await expect(
-      vault.mint(mintAmount, [amountXToAdd.mul(2), amountYToAdd.mul(2)])
+      vault.mint(mintAmount, [amountXToAdd.div(2), amountYToAdd.div(2)])
     ).to.be.revertedWithCustomError(vaultLib, "SlippageExceedThreshold");
   });
 

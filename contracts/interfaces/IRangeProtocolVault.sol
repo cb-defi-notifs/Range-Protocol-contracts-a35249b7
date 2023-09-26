@@ -97,7 +97,7 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
     // @notice mints the vaults shares for users based on the accepted collateral in tokenX and tokenY.
     function mint(
         uint256 mintAmount,
-        uint256[2] calldata minAmounts
+        uint256[2] calldata maxAmounts
     ) external returns (uint256 amountX, uint256 amountY);
 
     // @notice burns vault shares by the users and returns tokenX and tokenY to the users based on the vault shares burned.
