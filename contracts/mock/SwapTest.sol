@@ -7,7 +7,7 @@ import {IAlgebraSwapCallback} from "../algebra/core/contracts/interfaces/callbac
 
 contract SwapTest is IAlgebraSwapCallback {
     function swapZeroForOne(address pool, int256 amountSpecified) external {
-        (uint160 sqrtRatio, , , , , , ) = IAlgebraPool(pool).globalState();
+        (uint160 sqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
         uint160 nextSqrtRatio = sqrtRatio +
             uint160(uint160(uint256(amountSpecified) * 2 ** 96) / IAlgebraPool(pool).liquidity());
 
@@ -28,7 +28,7 @@ contract SwapTest is IAlgebraSwapCallback {
     ) external {
         for (uint256 i = 0; i < numTrades; i++) {
             bool zeroForOne = i % ratio > 0;
-            (uint160 sqrtRatio, , , , , , ) = IAlgebraPool(pool).globalState();
+            (uint160 sqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
             IAlgebraPool(pool).swap(
                 address(msg.sender),
                 zeroForOne,
@@ -53,7 +53,7 @@ contract SwapTest is IAlgebraSwapCallback {
             abi.encode(msg.sender)
         );
 
-        (nextSqrtRatio, , , , , , ) = IAlgebraPool(pool).globalState();
+        (nextSqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
     }
 
     function algebraSwapCallback(

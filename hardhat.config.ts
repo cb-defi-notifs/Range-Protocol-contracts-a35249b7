@@ -24,6 +24,9 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      forking: {
+        url: "https://arbitrum.llamarpc.com"
+      },
       allowUnlimitedContractSize: true,
     },
     mainnet: {
@@ -69,13 +72,13 @@ const config: HardhatUserConfig = {
       {
         version: "0.7.3",
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: true, runs: 100 },
         },
       },
       {
         version: "0.8.4",
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: true, runs: 100 },
         },
       },
     ],

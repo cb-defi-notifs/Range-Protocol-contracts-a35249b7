@@ -52,7 +52,7 @@ describe("RangeProtocolVault", () => {
     );
     algebraFactory = (await ethers.getContractAt(
       "IAlgebraFactory",
-      "0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28"
+      "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B"
     )) as IAlgebraFactory;
     await algebraFactory.createPool(token0.address, token1.address);
 
@@ -572,7 +572,36 @@ describe("RangeProtocolVault", () => {
         managerBalance0Before.add(managerBalance0).add(performanceFee0)
       );
       expect(await token1.balanceOf(manager.address)).to.be.equal(
-        managerBalance1Before.add(managerBalance1).add(performanceFee1)
+        managerBalance1Before.add(managerBalance1)
+      );
+
+      expect(await vault.managerBalance0()).to.be.equal(0);
+      expect(await vault.managerBalance1()).to.be.equal(0);
+    });
+
+    it("pull fee using updateFee function", async () => {
+      const { price } = await algebraPool.globalState();
+      const liquidity = await algebraPool.liquidity();
+      await token1.transfer(vault.address, amount1);
+      const priceDiff = amount1.mul(bn(2).pow(96)).div(liquidity);
+      const priceNext = price.add(priceDiff);
+      await vault.swap(false, amount1, priceNext);
+      const { fee0, fee1 } = await vault.getCurrentFees();
+      await expect(vault.updateFees(0, 0))
+        .to.emit(vault, "FeesEarned")
+        .withArgs(fee0, fee1);
+
+      const managerBalance0 = await vault.managerBalance0();
+      const managerBalance1 = await vault.managerBalance1();
+      const managerBalance0Before = await token0.balanceOf(manager.address);
+      const managerBalance1Before = await token1.balanceOf(manager.address);
+      await vault.connect(manager).collectManager();
+
+      expect(await token0.balanceOf(manager.address)).to.be.equal(
+        managerBalance0Before.add(managerBalance0)
+      );
+      expect(await token1.balanceOf(manager.address)).to.be.equal(
+        managerBalance1Before.add(managerBalance1)
       );
 
       expect(await vault.managerBalance0()).to.be.equal(0);
@@ -600,6 +629,13 @@ describe("RangeProtocolVault", () => {
           .connect(nonManager)
           .upgradeVaults([vault.address], [newVaultImpl.address])
       ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("an EOA address provided as implementation should not upgrade the contract", async () => {
+      const newVaultImpl = manager.address;
+      await expect(
+        factory.upgradeVault(vault.address, newVaultImpl)
+      ).to.be.revertedWithCustomError(factory, "ImplIsNotAContract");
     });
 
     it("should upgrade range vault implementation by factory manager", async () => {

@@ -46,7 +46,7 @@ describe("RangeProtocolFactory", () => {
     );
     algebraFactory = (await ethers.getContractAt(
       "IAlgebraFactory",
-      "0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28"
+      "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B"
     )) as IAlgebraFactory;
     await algebraFactory.createPool(token0.address, token1.address);
 
@@ -99,6 +99,21 @@ describe("RangeProtocolFactory", () => {
     ).to.be.revertedWith("ZeroPoolAddress()");
   });
 
+  it("should not deploy vault with zero manager address", async function () {
+    await expect(
+      factory.createVault(
+        token0.address,
+        token1.address,
+        vaultImpl.address,
+        getInitializeData({
+          managerAddress: ZERO_ADDRESS,
+          name,
+          symbol,
+        })
+      )
+    ).to.be.revertedWith("ZeroManagerAddress()");
+  });
+
   it("non-owner should not be able to deploy vault", async function () {
     await expect(
       factory
@@ -109,7 +124,7 @@ describe("RangeProtocolFactory", () => {
           vaultImpl.address,
           initializeData
         )
-    ).to.be.reverted;
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("owner should be able to deploy vault", async function () {
@@ -144,7 +159,7 @@ describe("RangeProtocolFactory", () => {
 
     expect(await factory.vaultCount()).to.be.equal(2);
     const vault0Address = (await factory.getVaultAddresses(0, 0))[0];
-    const vault1Address = (await factory.getVaultAddresses(0, 1))[1];
+    const vault1Address = (await factory.getVaultAddresses(1, 1))[0];
 
     expect(vault0Address).to.not.be.equal(ethers.constants.AddressZero);
     expect(vault1Address).to.not.be.equal(ethers.constants.AddressZero);

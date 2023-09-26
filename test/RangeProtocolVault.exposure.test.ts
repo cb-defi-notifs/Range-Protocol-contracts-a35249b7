@@ -43,10 +43,10 @@ describe("RangeProtocolVault::exposure", () => {
       await ethers.getSigners();
     algebraFactory = (await ethers.getContractAt(
       "IAlgebraFactory",
-      "0x411b0fAcC3489691f28ad58c47006AF5E3Ab3A28"
+      "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B"
     )) as IAlgebraFactory;
 
-    nonfungiblePositionManager = "0x8eF88E4c7CfbbaC1C163f7eddd4B578792201de6";
+    nonfungiblePositionManager = "0x00c7f3082833e796A5b3e4Bd59f6642FF44DCD15";
     nonfungiblePositionManagerMintInterface = new ethers.utils.Interface([
       "function mint(tuple(address,address,int24,int24,uint256,uint256,uint256,uint256,address,uint256)) external payable returns (uint256,uint128,uint256,uint256)",
     ]);

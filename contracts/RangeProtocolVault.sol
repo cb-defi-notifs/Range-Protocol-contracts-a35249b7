@@ -51,9 +51,9 @@ contract RangeProtocolVault is
     using TickMath for int24;
 
     /// Performance fee cannot be set more than 10% of the fee earned from algebra pool.
-    uint16 public constant MAX_PERFORMANCE_FEE_BPS = 1000;
+    uint16 private constant MAX_PERFORMANCE_FEE_BPS = 1000;
     /// Managing fee cannot be set more than 1% of the total fee earned.
-    uint16 public constant MAX_MANAGING_FEE_BPS = 100;
+    uint16 private constant MAX_MANAGING_FEE_BPS = 100;
 
     constructor() {
         _disableInitializers();
@@ -77,6 +77,8 @@ contract RangeProtocolVault is
             (address, string, string)
         );
 
+        // reverts if manager address provided is zero.
+        if (manager == address(0x0)) revert VaultErrors.ZeroManagerAddress();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
         __Ownable_init();
@@ -91,10 +93,8 @@ contract RangeProtocolVault is
         tickSpacing = _tickSpacing;
         factory = msg.sender;
 
-        performanceFee = 250;
-        managingFee = 0;
-        // Managing fee is 0% at the time vault initialization.
-        emit FeesUpdated(0, performanceFee);
+        // Managing fee is 0% and performanceFee is 2.5% at the time vault initialization.
+        _updateFees(0, 250);
     }
 
     /**
@@ -175,7 +175,7 @@ contract RangeProtocolVault is
         if (mintAmount == 0) revert VaultErrors.InvalidMintAmount();
         uint256 totalSupply = totalSupply();
         bool _inThePosition = inThePosition;
-        (uint160 sqrtRatioX96, , , , , , ) = pool.globalState();
+        (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
 
         if (totalSupply > 0) {
             (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
@@ -266,21 +266,21 @@ contract RangeProtocolVault is
         }
 
         _applyManagingFee(amount0, amount1);
-        (uint256 amount0AfterFee, uint256 amount1AfterFee) = _netManagingFees(amount0, amount1);
+        (amount0, amount1) = _netManagingFees(amount0, amount1);
         if (amount0 > 0) {
             userVaults[msg.sender].token0 =
                 (userVaults[msg.sender].token0 * (balanceBefore - burnAmount)) /
                 balanceBefore;
-            token0.safeTransfer(msg.sender, amount0AfterFee);
+            token0.safeTransfer(msg.sender, amount0);
         }
         if (amount1 > 0) {
             userVaults[msg.sender].token1 =
                 (userVaults[msg.sender].token1 * (balanceBefore - burnAmount)) /
                 balanceBefore;
-            token1.safeTransfer(msg.sender, amount1AfterFee);
+            token1.safeTransfer(msg.sender, amount1);
         }
 
-        emit Burned(msg.sender, burnAmount, amount0AfterFee, amount1AfterFee);
+        emit Burned(msg.sender, burnAmount, amount0, amount1);
     }
 
     /**
@@ -356,10 +356,9 @@ contract RangeProtocolVault is
         uint256 amount0,
         uint256 amount1
     ) external override onlyManager returns (uint256 remainingAmount0, uint256 remainingAmount1) {
-        _validateTicks(newBottomTick, newTopTick);
         if (inThePosition) revert VaultErrors.LiquidityAlreadyAdded();
 
-        (uint160 sqrtRatioX96, , , , , , ) = pool.globalState();
+        (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
         uint128 baseLiquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtRatioX96,
             newBottomTick.getSqrtRatioAtTick(),
@@ -378,6 +377,7 @@ contract RangeProtocolVault is
                 ""
             );
 
+            _updateTicks(newBottomTick, newTopTick);
             emit LiquidityAdded(
                 baseLiquidity,
                 newBottomTick,
@@ -403,10 +403,7 @@ contract RangeProtocolVault is
      * last collection.
      */
     function pullFeeFromPool() external onlyManager {
-        (, , uint256 fee0, uint256 fee1) = _withdraw(0);
-        _applyPerformanceFee(fee0, fee1);
-        (fee0, fee1) = _netPerformanceFees(fee0, fee1);
-        emit FeesEarned(fee0, fee1);
+        _pullFeeFromPool();
     }
 
     /// @notice collectManager collects manager fees accrued
@@ -431,12 +428,7 @@ contract RangeProtocolVault is
         uint16 newManagingFee,
         uint16 newPerformanceFee
     ) external override onlyManager {
-        if (newManagingFee > MAX_MANAGING_FEE_BPS) revert VaultErrors.InvalidManagingFee();
-        if (newPerformanceFee > MAX_PERFORMANCE_FEE_BPS) revert VaultErrors.InvalidPerformanceFee();
-
-        managingFee = newManagingFee;
-        performanceFee = newPerformanceFee;
-        emit FeesUpdated(newManagingFee, newPerformanceFee);
+        _updateFees(newManagingFee, newPerformanceFee);
     }
 
     /**
@@ -456,7 +448,7 @@ contract RangeProtocolVault is
         if (totalSupply > 0) {
             (amount0, amount1, mintAmount) = _calcMintAmounts(totalSupply, amount0Max, amount1Max);
         } else {
-            (uint160 sqrtRatioX96, , , , , , ) = pool.globalState();
+            (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
             uint128 newLiquidity = LiquidityAmounts.getLiquidityForAmounts(
                 sqrtRatioX96,
                 bottomTick.getSqrtRatioAtTick(),
@@ -485,7 +477,7 @@ contract RangeProtocolVault is
     function getUnderlyingBalancesAtPrice(
         uint160 sqrtRatioX96
     ) external view override returns (uint256 amount0Current, uint256 amount1Current) {
-        (, int24 tick, , , , , ) = pool.globalState();
+        (, int24 tick, , , , , , ) = pool.globalState();
         return _getUnderlyingBalances(sqrtRatioX96, tick);
     }
 
@@ -495,7 +487,7 @@ contract RangeProtocolVault is
      * @return fee1 uncollected fee in token1
      */
     function getCurrentFees() external view override returns (uint256 fee0, uint256 fee1) {
-        (, int24 tick, , , , , ) = pool.globalState();
+        (, int24 tick, , , , , , ) = pool.globalState();
         (
             uint128 liquidity,
             ,
@@ -570,7 +562,7 @@ contract RangeProtocolVault is
         override
         returns (uint256 amount0Current, uint256 amount1Current)
     {
-        (uint160 sqrtRatioX96, int24 tick, , , , , ) = pool.globalState();
+        (uint160 sqrtRatioX96, int24 tick, , , , , , ) = pool.globalState();
         return _getUnderlyingBalances(sqrtRatioX96, tick);
     }
 
@@ -852,9 +844,33 @@ contract RangeProtocolVault is
             revert VaultErrors.TicksOutOfRange();
 
         if (
-            _bottomTick >= _topTick ||
-            _bottomTick % tickSpacing != 0 ||
-            _topTick % tickSpacing != 0
+            _bottomTick >= _topTick || _bottomTick % tickSpacing != 0 || _topTick % tickSpacing != 0
         ) revert VaultErrors.InvalidTicksSpacing();
+    }
+
+    /**
+     * @notice internal function that pulls fee from the pool
+     */
+    function _pullFeeFromPool() private {
+        (, , uint256 fee0, uint256 fee1) = _withdraw(0);
+        _applyPerformanceFee(fee0, fee1);
+        (fee0, fee1) = _netPerformanceFees(fee0, fee1);
+        emit FeesEarned(fee0, fee1);
+    }
+
+    /**
+     * @notice internal function that updates the fee percentages for both performance
+     * and managing fee.
+     * @param newManagingFee new managing fee to set.
+     * @param newPerformanceFee new performance fee to set.
+     */
+    function _updateFees(uint16 newManagingFee, uint16 newPerformanceFee) private {
+        if (newManagingFee > MAX_MANAGING_FEE_BPS) revert VaultErrors.InvalidManagingFee();
+        if (newPerformanceFee > MAX_PERFORMANCE_FEE_BPS) revert VaultErrors.InvalidPerformanceFee();
+
+        if (inThePosition) _pullFeeFromPool();
+        managingFee = newManagingFee;
+        performanceFee = newPerformanceFee;
+        emit FeesUpdated(newManagingFee, newPerformanceFee);
     }
 }

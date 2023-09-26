@@ -4,10 +4,10 @@ import { getInitializeData } from "../../test/common";
 async function main() {
   const managerAddress = "0x84b43ce5fB1FAF013181FEA96ffA4af6179e396a"; // To be updated.
   const rangeProtocolFactoryAddress =
-    "0x5427d4E232b2520550889c19799cA4adF59076bA"; // To be updated.
-  const vaultImplAddress = "0xc4e502EFB8Bdf50dBb36b30E73800bA5Fc71cCF0"; // to be updated.
-  const token0 = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270";
-  const token1 = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+    "0x87411145423fDf9123040799F9Ff894153339a75"; // To be updated.
+  const vaultImplAddress = "0xae77949C4dBE890363E7A12b968E976E634242E9"; // to be updated.
+  const token0 = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+  const token1 = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
   const name = "Test Token"; // To be updated.
   const symbol = "TT"; // To be updated.
 
