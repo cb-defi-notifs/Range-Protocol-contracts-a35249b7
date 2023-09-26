@@ -162,10 +162,7 @@ describe("RangeProtocolVault::exposure", () => {
     } = await vault.getMintAmounts(amount0, amount1);
 
     await expect(
-      vault.mint(mintAmount1, [
-        amount0Mint1.mul(10100).div(10000),
-        amount1Mint1.mul(10100).div(10000),
-      ])
+      vault.mint(mintAmount1)
     )
       .to.emit(vault, "Minted")
       .withArgs(manager.address, mintAmount1, amount0Mint1, amount1Mint1);
@@ -189,10 +186,7 @@ describe("RangeProtocolVault::exposure", () => {
 
     await vault
       .connect(newManager)
-      .mint(mintAmount2, [
-        amount0Mint2.mul(10100).div(10000),
-        amount1Mint2.mul(10100).div(10000),
-      ]);
+      .mint(mintAmount2);
     console.log("Users 2:");
     console.log("mint amount: ", mintAmount1.toString());
     console.log("token0 amount: ", amount0Mint2.toString());
@@ -249,10 +243,7 @@ describe("RangeProtocolVault::exposure", () => {
 
     await vault
       .connect(newManager)
-      .mint(mintAmount3, [
-        amount0Mint3,
-        amount1Mint3
-      ]);
+      .mint(mintAmount3);
     console.log(
       "vault shares after: ",
       (await vault.balanceOf(newManager.address)).toString()
@@ -269,7 +260,7 @@ describe("RangeProtocolVault::exposure", () => {
     console.log("==================================================");
 
     console.log("Remove liquidity from uniswap pool");
-    await vault.removeLiquidity([0, 0]);
+    await vault.removeLiquidity();
     console.log("==================================================");
 
     console.log("Total users vault amounts based on their initial deposits");
@@ -327,21 +318,10 @@ describe("RangeProtocolVault::exposure", () => {
           false
         );
 
-    const ONE = bn(2).pow(bn(96));
-    let minAmountIn = ONE.mul(ONE)
-      .div(nextPrice)
-      .sub(ONE.mul(ONE).div(sqrtPriceX96))
-      .mul(liquidity)
-      .div(ONE);
-    minAmountIn = minAmountIn.mul(bn(9_900)).div(bn(10_000));
-    const minAmountInSigned = currentAmountBaseToken.gt(initialAmountBaseToken)
-      ? minAmountIn.toString()
-      : (-minAmountIn).toString();
     await vault.swap(
       currentAmountBaseToken.gt(initialAmountBaseToken),
       currentAmountBaseToken.sub(initialAmountBaseToken),
-      nextPrice,
-      minAmountInSigned
+      nextPrice
     );
     console.log("==================================================");
     console.log("Vault balance after swap to maintain users' vault exposure: ");
@@ -390,8 +370,7 @@ describe("RangeProtocolVault::exposure", () => {
       lowerTick,
       upperTick,
       amount0ToAdd.sub(await vault.managerBalance0()),
-      amount1ToAdd.sub(await vault.managerBalance1()),
-      [amount0ToAdd.mul(9900).div(10000), amount1ToAdd.mul(9900).div(10000)]
+      amount1ToAdd.sub(await vault.managerBalance1())
     );
 
     console.log("==================================================");
@@ -408,7 +387,7 @@ describe("RangeProtocolVault::exposure", () => {
     const user1Amount = await vault.balanceOf(manager.address);
     let { amount0: amount0Out, amount1: amount1Out } =
       await vault.getUnderlyingBalancesByShare(user1Amount);
-    await vault.burn(user1Amount, [amount0Out, amount1Out]);
+    await vault.burn(user1Amount);
 
     console.log("==================================================");
     console.log("Vault balance after user1 withdraws liquidity");
@@ -422,7 +401,7 @@ describe("RangeProtocolVault::exposure", () => {
     const user2Amount = await vault.balanceOf(newManager.address);
     ({ amount0: amount0Out, amount1: amount1Out } =
       await vault.getUnderlyingBalancesByShare(user1Amount));
-    await vault.connect(newManager).burn(user2Amount, [amount0Out, amount1Out]);
+    await vault.connect(newManager).burn(user2Amount);
 
     console.log("==================================================");
     console.log("Vault balance after user2 withdraws liquidity");
