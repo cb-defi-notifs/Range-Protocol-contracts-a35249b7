@@ -572,7 +572,7 @@ describe("RangeProtocolVault", () => {
           upperTick,
           amountXCurrent,
           amountYCurrent,
-          [amountXCurrent, amountYCurrent.mul(2)]
+          [amountXCurrent, amountYCurrent.div(2)]
         )
       ).to.be.revertedWithCustomError(vaultLib, "SlippageExceedThreshold");
     });
@@ -606,8 +606,8 @@ describe("RangeProtocolVault", () => {
       );
       await expect(
         vault.addLiquidity(lowerTick, upperTick, x, y, [
-          x.mul(9900).div(10000),
-          y.mul(9900).div(10000),
+          x.mul(10100).div(10000),
+          y.mul(10100).div(10000),
         ])
       )
         .to.emit(vault, "LiquidityAdded")
@@ -626,8 +626,8 @@ describe("RangeProtocolVault", () => {
         amountXCurrent,
         amountYCurrent,
         [
-          amountXCurrent.mul(9900).div(10000),
-          amountYCurrent.mul(9900).div(10000),
+          amountXCurrent.mul(10100).div(10000),
+          amountYCurrent.mul(10100).div(10000),
         ]
       );
 

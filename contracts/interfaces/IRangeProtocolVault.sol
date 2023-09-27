@@ -126,8 +126,8 @@ interface IRangeProtocolVault is IERC20Upgradeable, IiZiSwapCallback, IiZiSwapMi
         int24 newUpperTick,
         uint128 amountX,
         uint128 amountY,
-        uint256[2] calldata minAmounts
-    ) external returns (uint256 remainingAmountX, uint256 remainingamountY);
+        uint256[2] calldata maxAmounts
+    ) external returns (uint256 remainingAmountX, uint256 remainingAmountY);
 
     // @notice collects manager fee by the manager.
     function collectManager() external;

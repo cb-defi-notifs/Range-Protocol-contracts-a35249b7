@@ -318,7 +318,7 @@ describe("RangeProtocolVault::exposure", () => {
       upperTick,
       amountXCurrent4,
       amountYCurrent4,
-      [x.mul(9900).div(10000), y.mul(9900).div(10000)]
+      [x.mul(10100).div(10000), y.mul(10100).div(10000)]
     );
 
     console.log("==================================================");

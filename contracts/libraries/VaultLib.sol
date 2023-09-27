@@ -359,6 +359,7 @@ library VaultLib {
      * @param newRightPoint upper tick of the position.
      * @param amountX amount in token0 to add.
      * @param amountY amount in token1 to add.
+     * @param maxAmounts max amounts of tokenX and tokenY to add.
      * @return remainingAmountX amount in token0 left passive in the vault.
      * @return remainingAmountY amount in token1 left passive in the vault.
      */
@@ -368,7 +369,7 @@ library VaultLib {
         int24 newRightPoint,
         uint128 amountX,
         uint128 amountY,
-        uint256[2] calldata minAmounts
+        uint256[2] calldata maxAmounts
     ) external returns (uint256 remainingAmountX, uint256 remainingAmountY) {
         _validatePoints(newLeftPoint, newRightPoint, state.pointDelta);
         if (state.inThePosition) revert VaultErrors.LiquidityAlreadyAdded();
@@ -393,7 +394,7 @@ library VaultLib {
                 ""
             );
 
-            if (amountDepositedX < minAmounts[0] || amountDepositedY < minAmounts[1])
+            if (amountDepositedX > maxAmounts[0] || amountDepositedY > maxAmounts[1])
                 revert VaultErrors.SlippageExceedThreshold();
 
             _updatePoints(state, newLeftPoint, newRightPoint);
