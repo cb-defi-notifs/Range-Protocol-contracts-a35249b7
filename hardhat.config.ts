@@ -9,6 +9,7 @@ import "@typechain/hardhat";
 import "solidity-coverage";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 
 // Process Env Variables
 import * as dotenv from "dotenv";
@@ -26,7 +27,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         enabled: true,
-        url: "https://1rpc.io/bnb",
+        url: "https://rpc.ankr.com/mantle",
       },
       allowUnlimitedContractSize: true,
     },
