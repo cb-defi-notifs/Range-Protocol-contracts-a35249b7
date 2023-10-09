@@ -17,8 +17,8 @@ library VaultLib {
     int24 internal constant LEFT_MOST_PT = -800000;
     int24 internal constant RIGHT_MOST_PT = 800000;
 
-    /// Performance fee cannot be set more than 10% of the fee earned from uniswap v3 pool.
-    uint16 public constant MAX_PERFORMANCE_FEE_BPS = 1000;
+    /// Performance fee cannot be set more than 20% of the fee earned from uniswap v3 pool.
+    uint16 public constant MAX_PERFORMANCE_FEE_BPS = 2000;
     /// Managing fee cannot be set more than 1% of the total fee earned.
     uint16 public constant MAX_MANAGING_FEE_BPS = 100;
 

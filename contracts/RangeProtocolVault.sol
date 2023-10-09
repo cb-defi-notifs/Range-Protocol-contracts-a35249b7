@@ -73,8 +73,8 @@ contract RangeProtocolVault is
         state.tokenY = IERC20Upgradeable(state.pool.tokenY());
         state.pointDelta = _pointDelta;
         state.factory = msg.sender;
-        // Managing fee is 0% at the time vault initialization.
-        VaultLib.updateFees(state, 0, 250);
+        // Managing fee is 0% and performance is 10% at the time vault initialization.
+        VaultLib.updateFees(state, 0, 1000);
 
         _transferOwnership(manager);
     }
