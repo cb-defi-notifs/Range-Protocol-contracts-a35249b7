@@ -98,6 +98,12 @@ describe("RangeProtocolVault", () => {
     await token1.approve(vault.address, amount1.mul(bn(2)));
   });
 
+  it("should not reinitialize the vault", async () => {
+    await expect(
+      vault.initialize(algebraFactory.address, "0x")
+    ).to.be.revertedWith("Initializable: contract is already initialized");
+  });
+
   it("should not mint when vault is not initialized", async () => {
     await expect(vault.mint(amount0)).to.be.revertedWithCustomError(
       vault,
@@ -345,6 +351,20 @@ describe("RangeProtocolVault", () => {
     );
   });
 
+  describe("TickSpacing", () => {
+    it("should not update tick spacing by non-manager", async () => {
+      await expect(
+        vault.connect(nonManager).setTickSpacing(10)
+      ).to.be.revertedWith("Ownable: caller is not the manager");
+    });
+
+    it("should update tick spacing by manager", async () => {
+      expect(await vault.tickSpacing()).to.be.equal(60);
+      await expect(vault.setTickSpacing(10));
+      expect(await vault.tickSpacing()).to.be.equal(10);
+    });
+  });
+
   describe("Manager Fee", () => {
     it("should not update managing and performance fee by non manager", async () => {
       await expect(
@@ -516,7 +536,12 @@ describe("RangeProtocolVault", () => {
       const { amount0Current, amount1Current } =
         await vault.getUnderlyingBalances();
 
-      await vault.addLiquidity(bottomTick, topTick, amount0Current, amount1Current);
+      await vault.addLiquidity(
+        bottomTick,
+        topTick,
+        amount0Current,
+        amount1Current
+      );
 
       await expect(
         vault.addLiquidity(bottomTick, topTick, amount0Current, amount1Current)

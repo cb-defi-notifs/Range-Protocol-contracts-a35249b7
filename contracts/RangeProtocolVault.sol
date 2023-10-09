@@ -63,15 +63,10 @@ contract RangeProtocolVault is
      * @notice initialize initializes the vault contract and is called right after proxy deployment
      * by the factory contract.
      * @param _pool address of the algebra pool associated with vault
-     * @param _tickSpacing tick spacing of the algebra pool
      * @param data additional config data associated with the implementation. The data type chosen is bytes
      * to keep the initialize function implementation contract generic to be compatible with factory contract
      */
-    function initialize(
-        address _pool,
-        int24 _tickSpacing,
-        bytes memory data
-    ) external override initializer {
+    function initialize(address _pool, bytes memory data) external override initializer {
         (address manager, string memory _name, string memory _symbol) = abi.decode(
             data,
             (address, string, string)
@@ -90,7 +85,7 @@ contract RangeProtocolVault is
         pool = IAlgebraPool(_pool);
         token0 = IERC20Upgradeable(pool.token0());
         token1 = IERC20Upgradeable(pool.token1());
-        tickSpacing = _tickSpacing;
+        tickSpacing = pool.tickSpacing();
         factory = msg.sender;
 
         // Managing fee is 0% and performanceFee is 10% at the time vault initialization.
@@ -432,6 +427,13 @@ contract RangeProtocolVault is
     }
 
     /**
+     * @notice updates tick spacing by manager.
+     */
+    function setTickSpacing(int24 newTickSpacing) external override onlyManager {
+        tickSpacing = newTickSpacing;
+    }
+
+    /**
      * @notice compute maximum shares that can be minted from `amount0Max` and `amount1Max`
      * @param amount0Max The maximum amount of token0 to forward on mint
      * @param amount1Max The maximum amount of token1 to forward on mint
@@ -464,21 +466,6 @@ contract RangeProtocolVault is
                 newLiquidity
             );
         }
-    }
-
-    /**
-     * @notice compute total underlying token0 and token1 token supply at provided price
-     * includes current liquidity invested in algebra position, current fees earned
-     * and any uninvested leftover (but does not include manager fees accrued)
-     * @param sqrtRatioX96 price to computer underlying balances at
-     * @return amount0Current current total underlying balance of token0
-     * @return amount1Current current total underlying balance of token1
-     */
-    function getUnderlyingBalancesAtPrice(
-        uint160 sqrtRatioX96
-    ) external view override returns (uint256 amount0Current, uint256 amount1Current) {
-        (, int24 tick, , , , , , ) = pool.globalState();
-        return _getUnderlyingBalances(sqrtRatioX96, tick);
     }
 
     /**

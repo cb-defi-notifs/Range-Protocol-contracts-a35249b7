@@ -38,9 +38,11 @@ interface IRangeProtocolVault is IAlgebraMintCallback, IAlgebraSwapCallback {
     event TicksSet(int24 bottomTick, int24 topTick);
     event MintStarted();
 
-    function initialize(address _pool, int24 _tickSpacing, bytes memory data) external;
+    function initialize(address _pool, bytes memory data) external;
 
     function updateTicks(int24 _bottomTick, int24 _topTick) external;
+
+    function setTickSpacing(int24 newTickSpacing) external;
 
     function mint(uint256 mintAmount) external returns (uint256 amount0, uint256 amount1);
 
@@ -74,10 +76,6 @@ interface IRangeProtocolVault is IAlgebraMintCallback, IAlgebraSwapCallback {
         external
         view
         returns (uint256 amount0Current, uint256 amount1Current);
-
-    function getUnderlyingBalancesAtPrice(
-        uint160 sqrtRatioX96
-    ) external view returns (uint256 amount0Current, uint256 amount1Current);
 
     function getCurrentFees() external view returns (uint256 fee0, uint256 fee1);
 

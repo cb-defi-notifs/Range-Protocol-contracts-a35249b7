@@ -15,11 +15,9 @@ import {FactoryErrors} from "./errors/FactoryErrors.sol";
  * Owner can deploy and upgrade vault contracts.
  */
 contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
-    bytes4 public constant INIT_SELECTOR =
-        bytes4(keccak256(bytes("initialize(address,int24,bytes)")));
+    bytes4 public constant INIT_SELECTOR = bytes4(keccak256(bytes("initialize(address,bytes)")));
 
     bytes4 public constant UPGRADE_SELECTOR = bytes4(keccak256(bytes("upgradeTo(address)")));
-    int24 public constant TICK_SPACING = 60;
 
     /// @notice Algebra Finance factory
     address public immutable factory;
@@ -113,10 +111,7 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
         address token0 = tokenA < tokenB ? tokenA : tokenB;
         if (token0 == address(0x0)) revert("token cannot be a zero address");
         vault = address(
-            new ERC1967Proxy(
-                implementation,
-                abi.encodeWithSelector(INIT_SELECTOR, pool, TICK_SPACING, data)
-            )
+            new ERC1967Proxy(implementation, abi.encodeWithSelector(INIT_SELECTOR, pool, data))
         );
         _vaultsList.push(vault);
     }
