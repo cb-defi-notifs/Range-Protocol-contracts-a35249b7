@@ -42,7 +42,7 @@ describe("RangeProtocolVault::exposure", () => {
       await ethers.getSigners();
     iZiSwapFactory = await ethers.getContractAt(
       "IiZiSwapFactory",
-      "0x93BB94a0d5269cb437A1F71FF3a77AB753844422"
+      "0x45e5F26451CDB01B0fA1f8582E0aAD9A6F27C218"
     );
 
     const RangeProtocolFactory = await ethers.getContractFactory(
