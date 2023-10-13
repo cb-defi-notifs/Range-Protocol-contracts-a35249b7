@@ -34,7 +34,7 @@ let nonManager: SignerWithAddress;
 let newManager: SignerWithAddress;
 let user2: SignerWithAddress;
 let lpProvider: SignerWithAddress;
-const poolFee = 3000;
+const poolFee = 500;
 const name = "Test Token";
 const symbol = "TT";
 const amount0: BigNumber = parseEther("2");
@@ -47,19 +47,16 @@ describe("RangeProtocolVault::exposure", () => {
   before(async () => {
     [manager, nonManager, user2, newManager, trader, lpProvider] =
       await ethers.getSigners();
-    const UniswapV3Factory = await ethers.getContractFactory(
-      "UniswapV3Factory"
-    );
-    uniV3Factory = (await UniswapV3Factory.deploy()) as IUniswapV3Factory;
+    // const UniswapV3Factory = await ethers.getContractFactory(
+    //   "UniswapV3Factory"
+    // );
+    uniV3Factory = await ethers.getContractAt("IUniswapV3Factory", "0x25780dc8Fc3cfBD75F33bFDAB65e969b603b2035");
 
     const NonfungiblePositionManager = await ethers.getContractFactory(
       "NonfungiblePositionManager"
     );
-    nonfungiblePositionManager = (await NonfungiblePositionManager.deploy(
-      uniV3Factory.address,
-      trader.address,
-      trader.address
-    )) as INonfungiblePositionManager;
+    nonfungiblePositionManager = NonfungiblePositionManager.attach("0x218bf598D1453383e2F4AA7b14fFB9BfB102D637");
+    // nonfungiblePositionManager = await ethers.getContractAt("NonfungiblePositionManager", "") as INonfungiblePositionManager;
 
     const RangeProtocolFactory = await ethers.getContractFactory(
       "RangeProtocolFactory"
@@ -129,7 +126,7 @@ describe("RangeProtocolVault::exposure", () => {
       mintAmount: mintAmountLpProvider,
       amount0: amount0LpProvider,
       amount1: amount1LpProvider,
-    } = await vault.getMintAmounts(amount0.mul(10), amount1.mul(10));
+    } = await vault.getMintAmounts(amount0, amount1);
     await token0
       .connect(lpProvider)
       .approve(nonfungiblePositionManager.address, amount0LpProvider);
@@ -142,7 +139,7 @@ describe("RangeProtocolVault::exposure", () => {
       .mint([
         token0.address,
         token1.address,
-        3000,
+        500,
         lowerTick,
         upperTick,
         amount0LpProvider,

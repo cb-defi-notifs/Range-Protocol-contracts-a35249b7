@@ -23,6 +23,13 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   networks: {
+    hardhat: {
+      forking: {
+        enabled: true,
+        url: "https://rpc.ankr.com/mantle",
+      },
+      allowUnlimitedContractSize: true,
+    },
     mainnet: {
       accounts: PK ? [PK] : [],
       chainId: 1,
