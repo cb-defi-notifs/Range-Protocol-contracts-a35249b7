@@ -20,12 +20,24 @@ const PK_TEST = process.env.PK_TEST;
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      "mantle": "abc", //random value
+    },
+    customChains: [
+      {
+        network: "mantle",
+        chainId: 5000,
+        urls: {
+          apiURL: "https://explorer.mantle.xyz/api",
+          browserURL: "https://explorer.mantle.xyz",
+        },
+      },
+    ],
   },
   networks: {
     hardhat: {
       forking: {
-        url: "https://arbitrum.llamarpc.com"
+        url: "https://rpc.ankr.com/mantle",
       },
       allowUnlimitedContractSize: true,
     },

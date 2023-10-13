@@ -7,15 +7,15 @@ import {IAlgebraSwapCallback} from "../algebra/core/contracts/interfaces/callbac
 
 contract SwapTest is IAlgebraSwapCallback {
     function swapZeroForOne(address pool, int256 amountSpecified) external {
-        (uint160 sqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
-        uint160 nextSqrtRatio = sqrtRatio +
+        (uint160 price, , , , , ) = IAlgebraPool(pool).globalState();
+        uint160 nextPrice = price +
             uint160(uint160(uint256(amountSpecified) * 2 ** 96) / IAlgebraPool(pool).liquidity());
 
         IAlgebraPool(pool).swap(
             address(msg.sender),
             false,
             amountSpecified,
-            nextSqrtRatio,
+            nextPrice,
             abi.encode(msg.sender)
         );
     }
@@ -28,12 +28,12 @@ contract SwapTest is IAlgebraSwapCallback {
     ) external {
         for (uint256 i = 0; i < numTrades; i++) {
             bool zeroForOne = i % ratio > 0;
-            (uint160 sqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
+            (uint160 price, , , , , ) = IAlgebraPool(pool).globalState();
             IAlgebraPool(pool).swap(
                 address(msg.sender),
                 zeroForOne,
                 amountSpecified,
-                zeroForOne ? sqrtRatio - 1000 : sqrtRatio + 1000,
+                zeroForOne ? price - 1000 : price + 1000,
                 abi.encode(msg.sender)
             );
         }
@@ -44,7 +44,7 @@ contract SwapTest is IAlgebraSwapCallback {
         bool zeroForOne,
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96
-    ) external returns (int256 amount0Delta, int256 amount1Delta, uint160 nextSqrtRatio) {
+    ) external returns (int256 amount0Delta, int256 amount1Delta, uint160 nextPrice) {
         (amount0Delta, amount1Delta) = IAlgebraPool(pool).swap(
             address(msg.sender),
             zeroForOne,
@@ -53,7 +53,7 @@ contract SwapTest is IAlgebraSwapCallback {
             abi.encode(msg.sender)
         );
 
-        (nextSqrtRatio, , , , , , , ) = IAlgebraPool(pool).globalState();
+        (nextPrice, , , , , ) = IAlgebraPool(pool).globalState();
     }
 
     function algebraSwapCallback(

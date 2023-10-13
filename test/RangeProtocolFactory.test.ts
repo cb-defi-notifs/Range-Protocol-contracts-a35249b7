@@ -46,7 +46,7 @@ describe("RangeProtocolFactory", () => {
     );
     algebraFactory = (await ethers.getContractAt(
       "IAlgebraFactory",
-      "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B"
+      "0xC848bc597903B4200b9427a3d7F61e3FF0553913"
     )) as IAlgebraFactory;
     await algebraFactory.createPool(token0.address, token1.address);
 

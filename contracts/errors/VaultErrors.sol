@@ -17,4 +17,5 @@ library VaultErrors {
     error OnlyFactoryAllowed();
     error LiquidityAlreadyAdded();
     error ZeroManagerAddress();
+    error SlippageExceedThreshold();
 }

@@ -19,6 +19,8 @@ import {RangeProtocolVaultStorage} from "./RangeProtocolVaultStorage.sol";
 import {OwnableUpgradeable} from "./access/OwnableUpgradeable.sol";
 import {VaultErrors} from "./errors/VaultErrors.sol";
 
+//import "hardhat/console.sol";
+
 /**
  * @dev Mars@RangeProtocol
  * @notice RangeProtocolVault is fungible vault shares contract that accepts algebra pool tokens for liquidity
@@ -160,17 +162,19 @@ contract RangeProtocolVault is
      * @notice mint mints range vault shares, fractional shares of a Algebra position/strategy
      * to compute the amount of tokens necessary to mint `mintAmount` see getMintAmounts
      * @param mintAmount The number of shares to mint
+     * @param maxAmounts max amounts to add in token0 and token1.
      * @return amount0 amount of token0 transferred from msg.sender to mint `mintAmount`
      * @return amount1 amount of token1 transferred from msg.sender to mint `mintAmount`
      */
     function mint(
-        uint256 mintAmount
+        uint256 mintAmount,
+        uint256[2] calldata maxAmounts
     ) external override nonReentrant whenNotPaused returns (uint256 amount0, uint256 amount1) {
         if (!mintStarted) revert VaultErrors.MintNotStarted();
         if (mintAmount == 0) revert VaultErrors.InvalidMintAmount();
         uint256 totalSupply = totalSupply();
         bool _inThePosition = inThePosition;
-        (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
+        (uint160 price, , , , , ) = pool.globalState();
 
         if (totalSupply > 0) {
             (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
@@ -180,7 +184,7 @@ contract RangeProtocolVault is
             // If total supply is zero then inThePosition must be set to accept token0 and token1 based on currently set ticks.
             // This branch will be executed for the first mint and as well as each time total supply is to be changed from zero to non-zero.
             (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(
-                sqrtRatioX96,
+                price,
                 bottomTick.getSqrtRatioAtTick(),
                 topTick.getSqrtRatioAtTick(),
                 SafeCastUpgradeable.toUint128(mintAmount)
@@ -194,6 +198,9 @@ contract RangeProtocolVault is
             // Manager must call initialize function with valid tick ranges to enable the minting again.
             revert VaultErrors.MintNotAllowed();
         }
+
+        if (amount0 > maxAmounts[0] || amount1 > maxAmounts[1])
+            revert VaultErrors.SlippageExceedThreshold();
 
         if (!userVaults[msg.sender].exists) {
             userVaults[msg.sender].exists = true;
@@ -211,7 +218,7 @@ contract RangeProtocolVault is
         _mint(msg.sender, mintAmount);
         if (_inThePosition) {
             uint128 liquidityMinted = LiquidityAmounts.getLiquidityForAmounts(
-                sqrtRatioX96,
+                price,
                 bottomTick.getSqrtRatioAtTick(),
                 topTick.getSqrtRatioAtTick(),
                 amount0,
@@ -223,23 +230,32 @@ contract RangeProtocolVault is
         emit Minted(msg.sender, mintAmount, amount0, amount1);
     }
 
+    struct BurnLocalVars {
+        uint256 totalSupply;
+        uint256 balanceBefore;
+    }
+
     /**
      * @notice burn burns range vault shares (shares of a Algebra position) and receive underlying
      * @param burnAmount The number of shares to burn
+     * @param minAmounts the min desired amounts to be out from burn.
      * @return amount0 amount of token0 transferred to msg.sender for burning {burnAmount}
      * @return amount1 amount of token1 transferred to msg.sender for burning {burnAmount}
      */
     function burn(
-        uint256 burnAmount
+        uint256 burnAmount,
+        uint256[2] calldata minAmounts
     ) external override nonReentrant whenNotPaused returns (uint256 amount0, uint256 amount1) {
         if (burnAmount == 0) revert VaultErrors.InvalidBurnAmount();
-        uint256 totalSupply = totalSupply();
-        uint256 balanceBefore = balanceOf(msg.sender);
+
+        BurnLocalVars memory vars;
+        vars.totalSupply = totalSupply();
+        vars.balanceBefore = balanceOf(msg.sender);
         _burn(msg.sender, burnAmount);
 
         if (inThePosition) {
-            (uint128 liquidity, , , , , ) = pool.positions(getPositionID());
-            uint256 liquidityBurned_ = FullMath.mulDiv(burnAmount, liquidity, totalSupply);
+            (uint256 liquidity, , , , ) = pool.positions(getPositionID());
+            uint256 liquidityBurned_ = FullMath.mulDiv(burnAmount, liquidity, vars.totalSupply);
             uint128 liquidityBurned = SafeCastUpgradeable.toUint128(liquidityBurned_);
             (uint256 burn0, uint256 burn1, uint256 fee0, uint256 fee1) = _withdraw(liquidityBurned);
 
@@ -252,26 +268,29 @@ contract RangeProtocolVault is
             if (passiveBalance0 > managerBalance0) passiveBalance0 -= managerBalance0;
             if (passiveBalance1 > managerBalance1) passiveBalance1 -= managerBalance1;
 
-            amount0 = burn0 + FullMath.mulDiv(passiveBalance0, burnAmount, totalSupply);
-            amount1 = burn1 + FullMath.mulDiv(passiveBalance1, burnAmount, totalSupply);
+            amount0 = burn0 + FullMath.mulDiv(passiveBalance0, burnAmount, vars.totalSupply);
+            amount1 = burn1 + FullMath.mulDiv(passiveBalance1, burnAmount, vars.totalSupply);
         } else {
             (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
-            amount0 = FullMath.mulDiv(amount0Current, burnAmount, totalSupply);
-            amount1 = FullMath.mulDiv(amount1Current, burnAmount, totalSupply);
+            amount0 = FullMath.mulDiv(amount0Current, burnAmount, vars.totalSupply);
+            amount1 = FullMath.mulDiv(amount1Current, burnAmount, vars.totalSupply);
         }
+
+        if (amount0 < minAmounts[0] || amount1 < minAmounts[1])
+            revert VaultErrors.SlippageExceedThreshold();
 
         _applyManagingFee(amount0, amount1);
         (amount0, amount1) = _netManagingFees(amount0, amount1);
         if (amount0 > 0) {
             userVaults[msg.sender].token0 =
-                (userVaults[msg.sender].token0 * (balanceBefore - burnAmount)) /
-                balanceBefore;
+                (userVaults[msg.sender].token0 * (vars.balanceBefore - burnAmount)) /
+                vars.balanceBefore;
             token0.safeTransfer(msg.sender, amount0);
         }
         if (amount1 > 0) {
             userVaults[msg.sender].token1 =
-                (userVaults[msg.sender].token1 * (balanceBefore - burnAmount)) /
-                balanceBefore;
+                (userVaults[msg.sender].token1 * (vars.balanceBefore - burnAmount)) /
+                vars.balanceBefore;
             token1.safeTransfer(msg.sender, amount1);
         }
 
@@ -282,13 +301,18 @@ contract RangeProtocolVault is
      * @notice removeLiquidity removes liquidity from algebra pool and receives underlying tokens
      * in the vault contract.
      */
-    function removeLiquidity() external override onlyManager {
-        (uint128 liquidity, , , , , ) = pool.positions(getPositionID());
+    function removeLiquidity(uint256[2] calldata minAmounts) external override onlyManager {
+        (uint256 liquidity, , , , ) = pool.positions(getPositionID());
 
         if (liquidity > 0) {
             int24 _bottomTick = bottomTick;
             int24 _topTick = topTick;
-            (uint256 amount0, uint256 amount1, uint256 fee0, uint256 fee1) = _withdraw(liquidity);
+            (uint256 amount0, uint256 amount1, uint256 fee0, uint256 fee1) = _withdraw(
+                SafeCastUpgradeable.toUint128(liquidity)
+            );
+
+            if (amount0 < minAmounts[0] || amount1 < minAmounts[1])
+                revert VaultErrors.SlippageExceedThreshold();
 
             emit LiquidityRemoved(liquidity, _bottomTick, _topTick, amount0, amount1);
 
@@ -314,6 +338,7 @@ contract RangeProtocolVault is
      * @param sqrtPriceLimitX96 threshold price ratio after the swap.
      * If zero for one, the price cannot be lower (swap make price lower) than this threshold value after the swap
      * If one for zero, the price cannot be greater (swap make price higher) than this threshold value after the swap
+     * @param minAmountIn minimum amount to protect against slippage.
      * @return amount0 If positive represents exact input token0 amount after this swap, msg.sender paid amount,
      * or exact output token0 amount (negative), msg.sender received amount
      * @return amount1 If positive represents exact input token1 amount after this swap, msg.sender paid amount,
@@ -322,7 +347,8 @@ contract RangeProtocolVault is
     function swap(
         bool zeroForOne,
         int256 swapAmount,
-        uint160 sqrtPriceLimitX96
+        uint160 sqrtPriceLimitX96,
+        uint256 minAmountIn
     ) external override onlyManager returns (int256 amount0, int256 amount1) {
         (amount0, amount1) = pool.swap(
             address(this),
@@ -331,6 +357,11 @@ contract RangeProtocolVault is
             sqrtPriceLimitX96,
             ""
         );
+
+        if (
+            (zeroForOne && uint256(-amount1) < minAmountIn) ||
+            (!zeroForOne && uint256(-amount0) < minAmountIn)
+        ) revert VaultErrors.SlippageExceedThreshold();
 
         emit Swapped(zeroForOne, amount0, amount1);
     }
@@ -342,6 +373,7 @@ contract RangeProtocolVault is
      * @param newTopTick new upper tick to deposit liquidity into
      * @param amount0 max amount of amount0 to use
      * @param amount1 max amount of amount1 to use
+     * @param maxAmounts max amounts to add for slippage protection
      * @return remainingAmount0 remaining amount from amount0
      * @return remainingAmount1 remaining amount from amount1
      */
@@ -349,13 +381,14 @@ contract RangeProtocolVault is
         int24 newBottomTick,
         int24 newTopTick,
         uint256 amount0,
-        uint256 amount1
+        uint256 amount1,
+        uint256[2] calldata maxAmounts
     ) external override onlyManager returns (uint256 remainingAmount0, uint256 remainingAmount1) {
         if (inThePosition) revert VaultErrors.LiquidityAlreadyAdded();
 
-        (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
+        (uint160 price, , , , , ) = pool.globalState();
         uint128 baseLiquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtRatioX96,
+            price,
             newBottomTick.getSqrtRatioAtTick(),
             newTopTick.getSqrtRatioAtTick(),
             amount0,
@@ -371,6 +404,8 @@ contract RangeProtocolVault is
                 baseLiquidity,
                 ""
             );
+            if (amountDeposited0 > maxAmounts[0] || amountDeposited1 > maxAmounts[1])
+                revert VaultErrors.SlippageExceedThreshold();
 
             _updateTicks(newBottomTick, newTopTick);
             emit LiquidityAdded(
@@ -384,12 +419,6 @@ contract RangeProtocolVault is
             // Should return remaining token number for swap
             remainingAmount0 = amount0 - amountDeposited0;
             remainingAmount1 = amount1 - amountDeposited1;
-            bottomTick = newBottomTick;
-            topTick = newTopTick;
-            emit TicksSet(newBottomTick, newTopTick);
-
-            inThePosition = true;
-            emit InThePositionStatusSet(true);
         }
     }
 
@@ -450,9 +479,9 @@ contract RangeProtocolVault is
         if (totalSupply > 0) {
             (amount0, amount1, mintAmount) = _calcMintAmounts(totalSupply, amount0Max, amount1Max);
         } else {
-            (uint160 sqrtRatioX96, , , , , , , ) = pool.globalState();
+            (uint160 price, , , , , ) = pool.globalState();
             uint128 newLiquidity = LiquidityAmounts.getLiquidityForAmounts(
-                sqrtRatioX96,
+                price,
                 bottomTick.getSqrtRatioAtTick(),
                 topTick.getSqrtRatioAtTick(),
                 amount0Max,
@@ -460,7 +489,7 @@ contract RangeProtocolVault is
             );
             mintAmount = uint256(newLiquidity);
             (amount0, amount1) = LiquidityAmounts.getAmountsForLiquidity(
-                sqrtRatioX96,
+                price,
                 bottomTick.getSqrtRatioAtTick(),
                 topTick.getSqrtRatioAtTick(),
                 newLiquidity
@@ -474,17 +503,17 @@ contract RangeProtocolVault is
      * @return fee1 uncollected fee in token1
      */
     function getCurrentFees() external view override returns (uint256 fee0, uint256 fee1) {
-        (, int24 tick, , , , , , ) = pool.globalState();
+        (, int24 tick, , , , ) = pool.globalState();
         (
-            uint128 liquidity,
-            ,
-            uint256 feeGrowthInside0Last,
-            uint256 feeGrowthInside1Last,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
+            uint256 liquidity_,
+            uint256 innerFeeGrowth0Token,
+            uint256 innerFeeGrowth1Token,
+            uint128 _fees0,
+            uint128 _fees1
         ) = pool.positions(getPositionID());
-        fee0 = _feesEarned(true, feeGrowthInside0Last, tick, liquidity) + uint256(tokensOwed0);
-        fee1 = _feesEarned(false, feeGrowthInside1Last, tick, liquidity) + uint256(tokensOwed1);
+        uint128 liquidity = SafeCastUpgradeable.toUint128(liquidity_);
+        fee0 = _feesEarned(true, innerFeeGrowth0Token, tick, liquidity) + uint256(_fees0);
+        fee1 = _feesEarned(false, innerFeeGrowth1Token, tick, liquidity) + uint256(_fees1);
         (fee0, fee1) = _netPerformanceFees(fee0, fee1);
     }
 
@@ -549,8 +578,8 @@ contract RangeProtocolVault is
         override
         returns (uint256 amount0Current, uint256 amount1Current)
     {
-        (uint160 sqrtRatioX96, int24 tick, , , , , , ) = pool.globalState();
-        return _getUnderlyingBalances(sqrtRatioX96, tick);
+        (uint160 price, int24 tick, , , , ) = pool.globalState();
+        return _getUnderlyingBalances(price, tick);
     }
 
     function getUnderlyingBalancesByShare(
@@ -569,35 +598,35 @@ contract RangeProtocolVault is
 
     /**
      * @notice _getUnderlyingBalances internal function to calculate underlying balances
-     * @param sqrtRatioX96 price to calculate underlying balances at
+     * @param price price to calculate underlying balances at
      * @param tick tick at the given price
      * @return amount0Current current amount of token0
      * @return amount1Current current amount of token1
      */
     function _getUnderlyingBalances(
-        uint160 sqrtRatioX96,
+        uint160 price,
         int24 tick
     ) internal view returns (uint256 amount0Current, uint256 amount1Current) {
         (
-            uint128 liquidity,
-            ,
-            uint256 feeGrowthInside0Last,
-            uint256 feeGrowthInside1Last,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
+            uint256 liquidity_,
+            uint256 innerFeeGrowth0Token,
+            uint256 innerFeeGrowth1Token,
+            uint128 _fees0,
+            uint128 _fees1
         ) = pool.positions(getPositionID());
 
+        uint128 liquidity = SafeCastUpgradeable.toUint128(liquidity_);
         uint256 fee0;
         uint256 fee1;
         if (liquidity != 0) {
             (amount0Current, amount1Current) = LiquidityAmounts.getAmountsForLiquidity(
-                sqrtRatioX96,
+                price,
                 bottomTick.getSqrtRatioAtTick(),
                 topTick.getSqrtRatioAtTick(),
                 liquidity
             );
-            fee0 = _feesEarned(true, feeGrowthInside0Last, tick, liquidity) + uint256(tokensOwed0);
-            fee1 = _feesEarned(false, feeGrowthInside1Last, tick, liquidity) + uint256(tokensOwed1);
+            fee0 = _feesEarned(true, innerFeeGrowth0Token, tick, liquidity) + uint256(_fees0);
+            fee1 = _feesEarned(false, innerFeeGrowth1Token, tick, liquidity) + uint256(_fees1);
             (fee0, fee1) = _netPerformanceFees(fee0, fee1);
         }
 
@@ -663,7 +692,7 @@ contract RangeProtocolVault is
         int24 _topTick = topTick;
         uint256 preBalance0 = token0.balanceOf(address(this));
         uint256 preBalance1 = token1.balanceOf(address(this));
-        (burn0, burn1) = pool.burn(_bottomTick, _topTick, liquidity);
+        (burn0, burn1) = pool.burn(_bottomTick, _topTick, liquidity, "");
         pool.collect(address(this), _bottomTick, _topTick, type(uint128).max, type(uint128).max);
         fee0 = token0.balanceOf(address(this)) - preBalance0 - burn0;
         fee1 = token1.balanceOf(address(this)) - preBalance1 - burn1;
@@ -715,12 +744,12 @@ contract RangeProtocolVault is
         uint256 feeGrowthGlobal;
         if (isZero) {
             feeGrowthGlobal = pool.totalFeeGrowth0Token();
-            (, , feeGrowthOutsideBottom, , , , , ) = pool.ticks(bottomTick);
-            (, , feeGrowthOutsideTop, , , , , ) = pool.ticks(topTick);
+            (, , , , feeGrowthOutsideBottom, ) = pool.ticks(bottomTick);
+            (, , , , feeGrowthOutsideTop, ) = pool.ticks(topTick);
         } else {
             feeGrowthGlobal = pool.totalFeeGrowth1Token();
-            (, , , feeGrowthOutsideBottom, , , , ) = pool.ticks(bottomTick);
-            (, , , feeGrowthOutsideTop, , , , ) = pool.ticks(topTick);
+            (, , , , , feeGrowthOutsideBottom) = pool.ticks(bottomTick);
+            (, , , , , feeGrowthOutsideTop) = pool.ticks(topTick);
         }
 
         unchecked {
