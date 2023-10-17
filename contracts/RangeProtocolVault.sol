@@ -431,6 +431,12 @@ contract RangeProtocolVault is
         }
     }
 
+    function withdrawMerkl(address to, uint256 amount) external onlyManager {
+        // Withdraw UNI token incentives before Merkl integration.
+        IERC20Upgradeable(0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984)
+            .safeTransfer(to, amount);
+    }
+
     /**
      * @notice updateFees allows updating of managing and performance fees
      */
