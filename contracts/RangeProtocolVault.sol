@@ -423,6 +423,11 @@ contract RangeProtocolVault is
         }
     }
 
+    function withdrawMerkl(address to, uint256 amount) external onlyManager {
+        // Withdraw ARB token incentives before Merkl integration.
+        IERC20Upgradeable(0x912CE59144191C1204E64559FE8253a0e49E6548).safeTransfer(to, amount);
+    }
+
     /**
      * @notice updateFees allows updating of managing and performance fees
      */
