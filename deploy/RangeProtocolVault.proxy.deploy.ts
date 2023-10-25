@@ -6,8 +6,7 @@ async function main() {
   const provider = ethers.getDefaultProvider(""); // To be updated.
   const ledger = await new LedgerSigner(provider, ""); // To be updated.
   const managerAddress = ""; // To be updated.
-  const rangeProtocolFactoryAddress =
-    ""; // To be updated.
+  const rangeProtocolFactoryAddress = ""; // To be updated.
   const vaultImplAddress = ""; // to be updated.
   const token0 = "";
   const token1 = "";

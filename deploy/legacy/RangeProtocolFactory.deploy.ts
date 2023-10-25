@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 async function main() {
-  const ALGEBRA_FACTORY = "0x1a3c9B1d2F0529D97f2afC5136Cc23e58f1FD35B";
+  const ALGEBRA_FACTORY = "0xC848bc597903B4200b9427a3d7F61e3FF0553913";
   let RangeProtocolFactory = await ethers.getContractFactory(
     "RangeProtocolFactory"
   );
