@@ -8,7 +8,8 @@ import "@typechain/hardhat";
 import "hardhat-deploy";
 import "solidity-coverage";
 import "@nomicfoundation/hardhat-chai-matchers";
-import "hardhat-gas-reporter"
+import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 
 // Process Env Variables
 import * as dotenv from "dotenv";
@@ -23,6 +24,9 @@ const config: HardhatUserConfig = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
   networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true
+    },
     mainnet: {
       accounts: PK ? [PK] : [],
       chainId: 1,
