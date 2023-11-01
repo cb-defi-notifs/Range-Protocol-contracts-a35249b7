@@ -59,5 +59,8 @@
   "lint-staged": {
     "*.{ts,js}": "eslint -c .eslintrc.json"
   },
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "dependencies": {
+    "decimal.js": "^10.4.3"
+  }
 }
