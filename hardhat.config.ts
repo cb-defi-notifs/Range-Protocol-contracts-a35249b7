@@ -26,7 +26,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         enabled: true,
-        url: "https://rpc.ankr.com/mantle",
+        url: "https://rpc.mantle.xyz",
       },
       allowUnlimitedContractSize: true,
     },
