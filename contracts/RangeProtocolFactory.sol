@@ -24,7 +24,6 @@ contract RangeProtocolFactory is IRangeProtocolFactory, Ownable {
     /// @notice Algebra Finance factory
     address public immutable factory;
 
-
     /// @notice all deployed vault instances
     address[] private _vaultsList;
 
