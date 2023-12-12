@@ -177,7 +177,7 @@ contract RangeProtocolVault is
     function burn(
         uint256 burnAmount,
         uint256[2] calldata minAmounts
-    ) external override nonReentrant whenNotPaused returns (uint256 amountX, uint256 amountY) {
+    ) external override nonReentrant returns (uint256 amountX, uint256 amountY) {
         return VaultLib.burn(state, burnAmount, minAmounts);
     }
 
